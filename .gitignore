@@ -1,0 +1,25 @@
+# Unreal generated files
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Generated project files
+*.sln
+*.xcworkspace/
+*.xcodeproj/
+*.xcuserdata/
+*.xcuserstate
+
+# User-local and OS files
+.DS_Store
+*.opensdf
+*.sdf
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# IDE/editor
+.idea/
+.vscode/
