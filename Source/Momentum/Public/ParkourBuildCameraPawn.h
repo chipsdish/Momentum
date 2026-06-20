@@ -37,6 +37,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build Camera")
 	float SpeedStep = 250.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build Camera")
+	float MinPitch = -85.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build Camera")
+	float MaxPitch = 85.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Parkour|Input")
 	TObjectPtr<UInputMappingContext> BuildMappingContext;
 
@@ -75,6 +81,7 @@ protected:
 	void Input_DeleteSelected(const FInputActionValue& Value);
 	void Input_DuplicateSelected(const FInputActionValue& Value);
 
+	void ApplyLookInput(float YawValue, float PitchValue);
 	void Legacy_MoveForward(float Value);
 	void Legacy_MoveRight(float Value);
 	void Legacy_Turn(float Value);

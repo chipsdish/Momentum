@@ -205,7 +205,13 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 	}
 
 	const FVector WishDirection = ComputeWishDirection();
-	Accelerate(WishDirection, MaxSpeed * InputAmount, AirAcceleration * AirControlStrength, DeltaTime);
+	const float ForwardAmount = FMath::Max(MoveInput.Y, 0.0f);
+	const float SideAmount = FMath::Abs(MoveInput.X);
+	const float BackwardAmount = FMath::Max(-MoveInput.Y, 0.0f);
+	const float DirectionWeight = FMath::Max(ForwardAmount + SideAmount + BackwardAmount, KINDA_SMALL_NUMBER);
+	const float DirectionalScale = (ForwardAmount * AirForwardControlScale + SideAmount * AirSideControlScale + BackwardAmount * AirBackwardControlScale) / DirectionWeight;
+
+	Accelerate(WishDirection, MaxSpeed * InputAmount, AirAcceleration * AirControlStrength * DirectionalScale, DeltaTime);
 }
 
 void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)

@@ -16,6 +16,7 @@ AParkourBuildPiece::AParkourBuildPiece()
 	Mesh->SetupAttachment(SceneRoot);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	Mesh->SetCollisionResponseToAllChannels(ECR_Block);
+	Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 
 	SelectionBounds = CreateDefaultSubobject<UBoxComponent>(TEXT("SelectionBounds"));
 	SelectionBounds->SetupAttachment(SceneRoot);
@@ -95,6 +96,7 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 	if (SelectionBounds)
 	{
 		SelectionBounds->SetBoxExtent(PieceData.Dimensions.ComponentMax(FVector(10.0f)) * 0.5f);
+		SelectionBounds->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	}
 
 	if (LabelText)

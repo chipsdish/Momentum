@@ -172,11 +172,15 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 		}
 
 		bBuildModeEnabled = true;
-		SetMenuInputMode();
+		SetBuildInputMode();
 	}
 	else
 	{
 		AParkourBuildCameraPawn* CameraToDestroy = BuildCameraPawn;
+		if (AParkourBuildManager* BuildManager = FindBuildManager())
+		{
+			BuildManager->ClearSelection();
+		}
 
 		if (GameplayPawn)
 		{
@@ -226,6 +230,20 @@ void AParkourPlayerController::HandleRunFinished(float FinalTime)
 void AParkourPlayerController::SetMenuInputMode()
 {
 	bShowMouseCursor = true;
+	bEnableClickEvents = true;
+	bEnableMouseOverEvents = true;
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	InputMode.SetHideCursorDuringCapture(false);
+	SetInputMode(InputMode);
+}
+
+void AParkourPlayerController::SetBuildInputMode()
+{
+	bShowMouseCursor = true;
+	bEnableClickEvents = true;
+	bEnableMouseOverEvents = true;
 
 	FInputModeGameAndUI InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -236,6 +254,8 @@ void AParkourPlayerController::SetMenuInputMode()
 void AParkourPlayerController::SetGameplayInputMode()
 {
 	bShowMouseCursor = false;
+	bEnableClickEvents = false;
+	bEnableMouseOverEvents = false;
 
 	FInputModeGameOnly InputMode;
 	SetInputMode(InputMode);

@@ -144,7 +144,7 @@ void AParkourBuildCameraPawn::Input_Move(const FInputActionValue& Value)
 void AParkourBuildCameraPawn::Input_Look(const FInputActionValue& Value)
 {
 	const FVector2D LookValue = Value.Get<FVector2D>();
-	AddActorWorldRotation(FRotator(LookValue.Y, LookValue.X, 0.0f));
+	ApplyLookInput(LookValue.X, LookValue.Y);
 }
 
 void AParkourBuildCameraPawn::Input_Elevate(const FInputActionValue& Value)
@@ -176,6 +176,15 @@ void AParkourBuildCameraPawn::Input_DuplicateSelected(const FInputActionValue& V
 	}
 }
 
+void AParkourBuildCameraPawn::ApplyLookInput(float YawValue, float PitchValue)
+{
+	FRotator NewRotation = GetActorRotation();
+	NewRotation.Yaw = FRotator::NormalizeAxis(NewRotation.Yaw + YawValue);
+	NewRotation.Pitch = FMath::Clamp(FRotator::NormalizeAxis(NewRotation.Pitch + PitchValue), MinPitch, MaxPitch);
+	NewRotation.Roll = 0.0f;
+	SetActorRotation(NewRotation);
+}
+
 void AParkourBuildCameraPawn::Legacy_MoveForward(float Value)
 {
 	AddMovementInput(GetActorForwardVector(), Value);
@@ -188,12 +197,12 @@ void AParkourBuildCameraPawn::Legacy_MoveRight(float Value)
 
 void AParkourBuildCameraPawn::Legacy_Turn(float Value)
 {
-	AddActorWorldRotation(FRotator(0.0f, Value, 0.0f));
+	ApplyLookInput(Value, 0.0f);
 }
 
 void AParkourBuildCameraPawn::Legacy_LookUp(float Value)
 {
-	AddActorLocalRotation(FRotator(Value, 0.0f, 0.0f));
+	ApplyLookInput(0.0f, Value);
 }
 
 void AParkourBuildCameraPawn::Legacy_Elevate(float Value)

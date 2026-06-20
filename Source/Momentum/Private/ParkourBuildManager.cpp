@@ -49,6 +49,7 @@ void AParkourBuildManager::SelectPiece(AParkourBuildPiece* Piece)
 	SelectedPiece = Piece;
 	if (SelectedPiece)
 	{
+		RuntimePieces.AddUnique(SelectedPiece);
 		SelectedPiece->SetSelected(true);
 	}
 }

@@ -78,6 +78,7 @@ public:
 
 protected:
 	void SetMenuInputMode();
+	void SetBuildInputMode();
 	void SetGameplayInputMode();
 	void CreateHUD();
 	void RemoveWidget(TObjectPtr<UUserWidget>& Widget);

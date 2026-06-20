@@ -35,7 +35,7 @@ AParkourBoostPad::AParkourBoostPad()
 	LabelText->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	LabelText->SetHorizontalAlignment(EHTA_Center);
 	LabelText->SetWorldSize(42.0f);
-	LabelText->SetText(FText::FromString(TEXT("Boost Pad / 独立触发器")));
+	LabelText->SetText(FText::FromString(TEXT("Boost Pad\nTrigger Only")));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if (CubeMesh.Succeeded())

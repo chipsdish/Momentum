@@ -55,6 +55,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
 	float AirControlStrength = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
+	float AirForwardControlScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
+	float AirSideControlScale = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
+	float AirBackwardControlScale = 0.18f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Jump")
 	float JumpVelocity = 520.0f;
 
