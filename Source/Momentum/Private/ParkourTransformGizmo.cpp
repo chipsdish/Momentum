@@ -91,7 +91,15 @@ bool AParkourTransformGizmo::BeginDrag(EParkourGizmoAxis Axis, const FVector& Ra
 		DragPlane = FPlane(DragStartTargetLocation, PlaneNormal);
 	}
 
-	if (!IntersectDragPlane(RayOrigin, RayDirection, DragStartPoint))
+	if (Axis == EParkourGizmoAxis::XY)
+	{
+		if (!IntersectDragPlane(RayOrigin, RayDirection, DragStartPoint))
+		{
+			EndDrag();
+			return false;
+		}
+	}
+	else if (!ComputeAxisDragParameter(RayOrigin, RayDirection, DragStartAxisParameter))
 	{
 		EndDrag();
 		return false;
@@ -107,23 +115,29 @@ bool AParkourTransformGizmo::UpdateDrag(const FVector& RayOrigin, const FVector&
 		return false;
 	}
 
-	FVector CurrentPoint = FVector::ZeroVector;
-	if (!IntersectDragPlane(RayOrigin, RayDirection, CurrentPoint))
-	{
-		return false;
-	}
-
-	const FVector RawDelta = CurrentPoint - DragStartPoint;
 	FVector NewLocation = DragStartTargetLocation;
 
 	if (DragAxis == EParkourGizmoAxis::XY)
 	{
+		FVector CurrentPoint = FVector::ZeroVector;
+		if (!IntersectDragPlane(RayOrigin, RayDirection, CurrentPoint))
+		{
+			return false;
+		}
+
+		const FVector RawDelta = CurrentPoint - DragStartPoint;
 		NewLocation += FVector(RawDelta.X, RawDelta.Y, 0.0f);
 	}
 	else
 	{
+		float CurrentAxisParameter = 0.0f;
+		if (!ComputeAxisDragParameter(RayOrigin, RayDirection, CurrentAxisParameter))
+		{
+			return false;
+		}
+
 		const FVector AxisDirection = GetAxisDirection(DragAxis);
-		NewLocation += AxisDirection * FVector::DotProduct(RawDelta, AxisDirection);
+		NewLocation += AxisDirection * (CurrentAxisParameter - DragStartAxisParameter);
 	}
 
 	NewLocation = SnapLocation(NewLocation);
@@ -135,6 +149,7 @@ bool AParkourTransformGizmo::UpdateDrag(const FVector& RayOrigin, const FVector&
 void AParkourTransformGizmo::EndDrag()
 {
 	DragAxis = EParkourGizmoAxis::None;
+	DragStartAxisParameter = 0.0f;
 }
 
 void AParkourTransformGizmo::SetSnapSize(float NewSnapSize)
@@ -166,6 +181,29 @@ bool AParkourTransformGizmo::IntersectDragPlane(const FVector& RayOrigin, const 
 	}
 
 	OutPoint = FMath::LinePlaneIntersection(RayOrigin, RayEnd, DragPlane);
+	return true;
+}
+
+bool AParkourTransformGizmo::ComputeAxisDragParameter(const FVector& RayOrigin, const FVector& RayDirection, float& OutParameter) const
+{
+	const FVector AxisDirection = GetAxisDirection(DragAxis).GetSafeNormal();
+	const FVector SafeRayDirection = RayDirection.GetSafeNormal();
+	if (AxisDirection.IsNearlyZero() || SafeRayDirection.IsNearlyZero())
+	{
+		return false;
+	}
+
+	const float AxisRayDot = FVector::DotProduct(AxisDirection, SafeRayDirection);
+	const float Denominator = 1.0f - AxisRayDot * AxisRayDot;
+	if (FMath::IsNearlyZero(Denominator, 0.0001f))
+	{
+		return false;
+	}
+
+	const FVector AxisToRay = DragStartTargetLocation - RayOrigin;
+	const float AxisProjection = FVector::DotProduct(AxisDirection, AxisToRay);
+	const float RayProjection = FVector::DotProduct(SafeRayDirection, AxisToRay);
+	OutParameter = (AxisRayDot * RayProjection - AxisProjection) / Denominator;
 	return true;
 }
 

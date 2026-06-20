@@ -226,6 +226,13 @@ void AParkourGameMode::EnsureBasicLighting()
 
 bool AParkourGameMode::HasPlacedGreyboxCourse() const
 {
+	TArray<AActor*> BuildPieces;
+	UGameplayStatics::GetAllActorsOfClass(this, AParkourBuildPiece::StaticClass(), BuildPieces);
+	if (BuildPieces.Num() > 0)
+	{
+		return true;
+	}
+
 	TArray<AActor*> TaggedActors;
 	UGameplayStatics::GetAllActorsWithTag(this, PlacedCourseTag, TaggedActors);
 	return TaggedActors.Num() > 0;
@@ -246,7 +253,7 @@ void AParkourGameMode::SpawnDefaultGreyboxCourse()
 	SpawnGreyboxBlock(TEXT("Start Platform"), FVector(0.0f, 0.0f, 0.0f), FRotator::ZeroRotator, FVector(600.0f, 600.0f, 80.0f));
 	SpawnCourseLabel(TEXT("Start / 起点"), FVector(0.0f, -360.0f, 160.0f));
 
-	SpawnGreyboxBlock(TEXT("Walkable Slope"), FVector(1300.0f, 0.0f, 60.0f), FRotator(18.0f, 0.0f, 0.0f), FVector(900.0f, 420.0f, 70.0f));
+	SpawnGreyboxBlock(TEXT("Walkable Slope"), FVector(1300.0f, 0.0f, 60.0f), FRotator::ZeroRotator, FVector(900.0f, 420.0f, 70.0f), EParkourBuildPieceType::Ramp, 18.0f, false);
 	SpawnCourseLabel(TEXT("小坡: 正常行走"), FVector(1300.0f, -520.0f, 260.0f));
 
 	SpawnGreyboxBlock(TEXT("Bunny Hop 1"), FVector(2500.0f, 0.0f, 70.0f), FRotator::ZeroRotator, FVector(250.0f, 250.0f, 70.0f));
@@ -254,18 +261,18 @@ void AParkourGameMode::SpawnDefaultGreyboxCourse()
 	SpawnGreyboxBlock(TEXT("Bunny Hop 3"), FVector(4100.0f, 0.0f, 70.0f), FRotator::ZeroRotator, FVector(250.0f, 250.0f, 70.0f));
 	SpawnCourseLabel(TEXT("Bunny Hop / 手动连跳"), FVector(3300.0f, -520.0f, 240.0f));
 
-	SpawnGreyboxBlock(TEXT("Surf Ramp Left"), FVector(5600.0f, -560.0f, 170.0f), FRotator(44.0f, -10.0f, 0.0f), FVector(1200.0f, 500.0f, 70.0f));
+	SpawnGreyboxBlock(TEXT("Surf Ramp Left"), FVector(5600.0f, -560.0f, 170.0f), FRotator::ZeroRotator, FVector(1200.0f, 500.0f, 70.0f), EParkourBuildPieceType::Ramp, 44.0f, true);
 	SpawnCourseLabel(TEXT("左侧大斜坡: Surf"), FVector(5600.0f, -1120.0f, 430.0f));
 
-	SpawnGreyboxBlock(TEXT("Acceleration Ramp Right"), FVector(7400.0f, 560.0f, 260.0f), FRotator(50.0f, 10.0f, 0.0f), FVector(1400.0f, 500.0f, 70.0f));
+	SpawnGreyboxBlock(TEXT("Acceleration Ramp Right"), FVector(7400.0f, 560.0f, 260.0f), FRotator::ZeroRotator, FVector(1400.0f, 500.0f, 70.0f), EParkourBuildPieceType::AccelerationRamp, 50.0f, true);
 	SpawnCourseLabel(TEXT("右侧真实加速坡: 无 AddImpulse"), FVector(7400.0f, 1120.0f, 560.0f));
 
-	SpawnGreyboxBlock(TEXT("Curved Slide Left 1"), FVector(9200.0f, -560.0f, 390.0f), FRotator(43.0f, -18.0f, 0.0f), FVector(1000.0f, 430.0f, 65.0f));
-	SpawnGreyboxBlock(TEXT("Curved Slide Right 2"), FVector(10800.0f, 560.0f, 500.0f), FRotator(43.0f, 18.0f, 0.0f), FVector(1000.0f, 430.0f, 65.0f));
-	SpawnGreyboxBlock(TEXT("Curved Slide Left 3"), FVector(12400.0f, -560.0f, 610.0f), FRotator(43.0f, -18.0f, 0.0f), FVector(1000.0f, 430.0f, 65.0f));
+	SpawnGreyboxBlock(TEXT("Curved Slide Left 1"), FVector(9200.0f, -560.0f, 390.0f), FRotator::ZeroRotator, FVector(1000.0f, 430.0f, 65.0f), EParkourBuildPieceType::Ramp, 43.0f, true);
+	SpawnGreyboxBlock(TEXT("Curved Slide Right 2"), FVector(10800.0f, 560.0f, 500.0f), FRotator::ZeroRotator, FVector(1000.0f, 430.0f, 65.0f), EParkourBuildPieceType::Ramp, 43.0f, true);
+	SpawnGreyboxBlock(TEXT("Curved Slide Left 3"), FVector(12400.0f, -560.0f, 610.0f), FRotator::ZeroRotator, FVector(1000.0f, 430.0f, 65.0f), EParkourBuildPieceType::Ramp, 43.0f, true);
 	SpawnCourseLabel(TEXT("弯曲滑坡: 左右交替分段"), FVector(10800.0f, 0.0f, 820.0f));
 
-	SpawnGreyboxBlock(TEXT("Jump Ramp"), FVector(14200.0f, 560.0f, 660.0f), FRotator(28.0f, 18.0f, 0.0f), FVector(650.0f, 380.0f, 75.0f));
+	SpawnGreyboxBlock(TEXT("Jump Ramp"), FVector(14200.0f, 560.0f, 660.0f), FRotator(0.0f, 18.0f, 0.0f), FVector(650.0f, 380.0f, 75.0f), EParkourBuildPieceType::JumpRamp, 28.0f, false);
 	SpawnCourseLabel(TEXT("跳台斜坡: Bunny Hop / 空中转向"), FVector(14200.0f, 1060.0f, 900.0f));
 
 	SpawnGreyboxBlock(TEXT("Air Platform"), FVector(15600.0f, 560.0f, 800.0f), FRotator::ZeroRotator, FVector(720.0f, 560.0f, 70.0f));
@@ -296,7 +303,7 @@ void AParkourGameMode::SpawnDefaultGreyboxCourse()
 	World->SpawnActor<AParkourBuildManager>(AParkourBuildManager::StaticClass(), FVector(0.0f, 900.0f, 120.0f), FRotator::ZeroRotator);
 }
 
-AActor* AParkourGameMode::SpawnGreyboxBlock(const FString& Name, const FVector& Location, const FRotator& Rotation, const FVector& Dimensions)
+AActor* AParkourGameMode::SpawnGreyboxBlock(const FString& Name, const FVector& Location, const FRotator& Rotation, const FVector& Dimensions, EParkourBuildPieceType PieceType, float SlopeAngle, bool bUseInwardBank)
 {
 	UWorld* World = GetWorld();
 	if (!World)
@@ -315,10 +322,19 @@ AActor* AParkourGameMode::SpawnGreyboxBlock(const FString& Name, const FVector& 
 #endif
 
 	FParkourBuildPieceData PieceData;
+	PieceData.PieceType = PieceType;
 	PieceData.Transform = FTransform(Rotation, Location);
 	PieceData.Dimensions = Dimensions;
+	PieceData.SlopeAngle = FMath::Max(0.0f, SlopeAngle);
+	PieceData.bUseInwardBank = bUseInwardBank;
 	PieceData.Label = Name;
 	Block->ConfigureFromData(PieceData);
+	if (SlopeAngle > KINDA_SMALL_NUMBER)
+	{
+		Block->SetUseInwardBank(bUseInwardBank);
+		Block->SetSlopeAngle(SlopeAngle);
+	}
+	Block->Tags.AddUnique(PlacedCourseTag);
 	return Block;
 }
 

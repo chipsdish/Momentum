@@ -121,18 +121,16 @@ void UParkourMovementComponent::CalcVelocity(float DeltaTime, float Friction, bo
 
 void UParkourMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 {
-	if (DeltaTime >= MIN_TICK_TIME && HasValidData())
+	// Disable default lateral air control; CS/KZ-style acceleration is applied after falling physics.
+	Acceleration = FVector::ZeroVector;
+	Super::PhysFalling(DeltaTime, Iterations);
+
+	if (DeltaTime >= MIN_TICK_TIME && HasValidData() && MovementMode == MOVE_Falling)
 	{
 		UpdateMovementState(DeltaTime);
 		ApplyAirMovement(DeltaTime);
 		ClampVelocity();
-
-		// Disable default lateral air acceleration; CS-style acceleration already ran.
-		Acceleration = FVector::ZeroVector;
 	}
-
-	Super::PhysFalling(DeltaTime, Iterations);
-	ClampVelocity();
 }
 
 void UParkourMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
@@ -211,7 +209,8 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 	const float DirectionWeight = FMath::Max(ForwardAmount + SideAmount + BackwardAmount, KINDA_SMALL_NUMBER);
 	const float DirectionalScale = (ForwardAmount * AirForwardControlScale + SideAmount * AirSideControlScale + BackwardAmount * AirBackwardControlScale) / DirectionWeight;
 
-	Accelerate(WishDirection, MaxSpeed * InputAmount, AirAcceleration * AirControlStrength * DirectionalScale, DeltaTime);
+	const float WishSpeed = FMath::Max(MaxSpeed, AirWishSpeed) * InputAmount;
+	Accelerate(WishDirection, WishSpeed, AirAcceleration * AirControlStrength * DirectionalScale, DeltaTime);
 }
 
 void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
@@ -231,7 +230,13 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 	const float InputAmount = MoveInput.Size();
 	if (InputAmount > KINDA_SMALL_NUMBER)
 	{
-		const FVector WishDirection = ComputeSurfaceWishDirection(FloorNormal);
+		FVector WishDirection = ComputeSurfaceWishDirection(FloorNormal);
+		const float UphillAmount = FVector::DotProduct(WishDirection, -DownSlopeDirection);
+		if (UphillAmount > 0.0f)
+		{
+			WishDirection = (WishDirection + DownSlopeDirection * UphillAmount).GetSafeNormal();
+		}
+
 		Accelerate(WishDirection, MaxSpeed * InputAmount, SurfControlAcceleration, DeltaTime);
 	}
 }

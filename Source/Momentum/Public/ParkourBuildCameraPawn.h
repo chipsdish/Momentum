@@ -81,6 +81,7 @@ protected:
 	void Input_DeleteSelected(const FInputActionValue& Value);
 	void Input_DuplicateSelected(const FInputActionValue& Value);
 
+	bool ShouldApplyLookInput() const;
 	void ApplyLookInput(float YawValue, float PitchValue);
 	void Legacy_MoveForward(float Value);
 	void Legacy_MoveRight(float Value);

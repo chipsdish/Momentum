@@ -60,6 +60,7 @@ public:
 protected:
 	FVector GetAxisDirection(EParkourGizmoAxis Axis) const;
 	bool IntersectDragPlane(const FVector& RayOrigin, const FVector& RayDirection, FVector& OutPoint) const;
+	bool ComputeAxisDragParameter(const FVector& RayOrigin, const FVector& RayDirection, float& OutParameter) const;
 	FVector SnapLocation(const FVector& Location) const;
 	void SetGizmoVisible(bool bVisible);
 
@@ -70,4 +71,5 @@ protected:
 	FPlane DragPlane;
 	FVector DragStartPoint = FVector::ZeroVector;
 	FVector DragStartTargetLocation = FVector::ZeroVector;
+	float DragStartAxisParameter = 0.0f;
 };

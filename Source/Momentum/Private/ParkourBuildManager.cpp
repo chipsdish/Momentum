@@ -1,5 +1,6 @@
 #include "ParkourBuildManager.h"
 
+#include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "ParkourBuildPiece.h"
 #include "ParkourBuildSaveGame.h"
@@ -8,6 +9,12 @@ AParkourBuildManager::AParkourBuildManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	BuildPieceClass = AParkourBuildPiece::StaticClass();
+}
+
+void AParkourBuildManager::BeginPlay()
+{
+	Super::BeginPlay();
+	RegisterExistingBuildPieces();
 }
 
 AParkourBuildPiece* AParkourBuildManager::AddDefaultPiece(EParkourBuildPieceType PieceType)
@@ -34,7 +41,7 @@ AParkourBuildPiece* AParkourBuildManager::AddPieceFromData(const FParkourBuildPi
 	}
 
 	Piece->ConfigureFromData(PieceData);
-	RuntimePieces.Add(Piece);
+	RuntimePieces.AddUnique(Piece);
 	SelectPiece(Piece);
 	return Piece;
 }
@@ -83,6 +90,22 @@ AParkourBuildPiece* AParkourBuildManager::DuplicateSelectedPiece()
 	DuplicatedData.PieceId = FGuid::NewGuid();
 	DuplicatedData.Transform.AddToTranslation(FVector(DuplicateOffset, DuplicateOffset, 0.0f));
 	return AddPieceFromData(DuplicatedData);
+}
+
+void AParkourBuildManager::AdjustSelectedSlopeAngle(float DeltaAngle)
+{
+	if (SelectedPiece)
+	{
+		SelectedPiece->AdjustSlopeAngle(DeltaAngle);
+	}
+}
+
+void AParkourBuildManager::SetSelectedSlopeAngle(float NewSlopeAngle)
+{
+	if (SelectedPiece)
+	{
+		SelectedPiece->SetSlopeAngle(NewSlopeAngle);
+	}
 }
 
 void AParkourBuildManager::ClearRuntimePieces()
@@ -213,6 +236,24 @@ void AParkourBuildManager::ResetDefaultRuntimeLayout()
 	ClearSelection();
 }
 
+void AParkourBuildManager::RegisterExistingBuildPieces()
+{
+	RuntimePieces.RemoveAll([](const TObjectPtr<AParkourBuildPiece>& Piece)
+	{
+		return !IsValid(Piece);
+	});
+
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	for (TActorIterator<AParkourBuildPiece> It(GetWorld()); It; ++It)
+	{
+		RuntimePieces.AddUnique(*It);
+	}
+}
+
 UParkourBuildSaveGame* AParkourBuildManager::LoadOrCreateSaveGame() const
 {
 	if (UGameplayStatics::DoesSaveGameExist(SaveSlotName, SaveUserIndex))
@@ -237,12 +278,12 @@ FParkourBuildPieceData AParkourBuildManager::MakeDefaultPieceData(EParkourBuildP
 	case EParkourBuildPieceType::Ramp:
 		PieceData.Dimensions = FVector(600.0f, 300.0f, 60.0f);
 		PieceData.SlopeAngle = 35.0f;
-		PieceData.Transform.SetRotation(FRotator(-PieceData.SlopeAngle, 0.0f, 0.0f).Quaternion());
+		PieceData.Transform.SetRotation(FRotator(PieceData.SlopeAngle, 0.0f, 0.0f).Quaternion());
 		break;
 	case EParkourBuildPieceType::JumpRamp:
 		PieceData.Dimensions = FVector(350.0f, 250.0f, 80.0f);
 		PieceData.SlopeAngle = 25.0f;
-		PieceData.Transform.SetRotation(FRotator(-PieceData.SlopeAngle, 0.0f, 0.0f).Quaternion());
+		PieceData.Transform.SetRotation(FRotator(PieceData.SlopeAngle, 0.0f, 0.0f).Quaternion());
 		break;
 	case EParkourBuildPieceType::AirPlatform:
 		PieceData.Transform.AddToTranslation(FVector(600.0f, 0.0f, 300.0f));
@@ -255,7 +296,8 @@ FParkourBuildPieceData AParkourBuildManager::MakeDefaultPieceData(EParkourBuildP
 	case EParkourBuildPieceType::AccelerationRamp:
 		PieceData.Dimensions = FVector(900.0f, 350.0f, 80.0f);
 		PieceData.SlopeAngle = 45.0f;
-		PieceData.Transform.SetRotation(FRotator(-PieceData.SlopeAngle, 0.0f, 0.0f).Quaternion());
+		PieceData.bUseInwardBank = true;
+		PieceData.Transform.SetRotation(FRotator(0.0f, 0.0f, PieceData.SlopeAngle).Quaternion());
 		break;
 	case EParkourBuildPieceType::RespawnVolume:
 		PieceData.Dimensions = FVector(1000.0f, 1000.0f, 120.0f);

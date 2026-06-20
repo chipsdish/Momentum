@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "ParkourTypes.h"
 #include "ParkourGameMode.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FParkourRunFinishedSignature, float, FinalTime);
@@ -47,7 +48,7 @@ public:
 	bool bAutoStartRunTimer = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Greybox")
-	bool bSpawnDefaultGreyboxCourse = true;
+	bool bSpawnDefaultGreyboxCourse = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Greybox")
 	FName PlacedCourseTag = TEXT("MomentumCourseStatic");
@@ -57,7 +58,7 @@ protected:
 	void EnsureBasicLighting();
 	bool HasPlacedGreyboxCourse() const;
 	void SpawnDefaultGreyboxCourse();
-	AActor* SpawnGreyboxBlock(const FString& Name, const FVector& Location, const FRotator& Rotation, const FVector& Dimensions);
+	AActor* SpawnGreyboxBlock(const FString& Name, const FVector& Location, const FRotator& Rotation, const FVector& Dimensions, EParkourBuildPieceType PieceType = EParkourBuildPieceType::Platform, float SlopeAngle = 0.0f, bool bUseInwardBank = false);
 	void SpawnCourseLabel(const FString& Text, const FVector& Location);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Respawn")

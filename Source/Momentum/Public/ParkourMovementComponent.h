@@ -53,6 +53,9 @@ public:
 	float AirAcceleration = 18.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
+	float AirWishSpeed = 1600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
 	float AirControlStrength = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
@@ -89,7 +92,7 @@ public:
 	float SurfAcceleration = 980.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
-	float SurfControlAcceleration = 7.0f;
+	float SurfControlAcceleration = 2.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Respawn")
 	float RespawnZThreshold = -2000.0f;

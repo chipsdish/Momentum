@@ -4,6 +4,7 @@
 #include "Components/Border.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetComponent.h"
+#include "GameFramework/PlayerController.h"
 #include "Styling/CoreStyle.h"
 
 void UParkourWorldLabelWidget::SetLabelText(const FString& NewText, float NewFontSize)
@@ -27,7 +28,8 @@ TSharedRef<SWidget> UParkourWorldLabelWidget::RebuildWidget()
 	}
 
 	UBorder* Root = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("LabelRoot"));
-	Root->SetBrushColor(FLinearColor(0.02f, 0.025f, 0.035f, 0.72f));
+	Root->SetBrushColor(FLinearColor(0.02f, 0.025f, 0.035f, 0.88f));
+	Root->SetPadding(FMargin(14.0f, 10.0f));
 	WidgetTree->RootWidget = Root;
 
 	LabelTextBlock = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LabelText"));
@@ -36,6 +38,8 @@ TSharedRef<SWidget> UParkourWorldLabelWidget::RebuildWidget()
 	LabelTextBlock->SetJustification(ETextJustify::Center);
 	LabelTextBlock->SetColorAndOpacity(FSlateColor(FLinearColor(0.90f, 0.96f, 1.0f, 1.0f)));
 	LabelTextBlock->SetFont(FSlateFontInfo(FCoreStyle::GetDefaultFont(), CurrentFontSize));
+	LabelTextBlock->SetShadowOffset(FVector2D(2.0f, 2.0f));
+	LabelTextBlock->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
 	Root->SetContent(LabelTextBlock);
 
 	return Root->TakeWidget();
@@ -43,7 +47,7 @@ TSharedRef<SWidget> UParkourWorldLabelWidget::RebuildWidget()
 
 AParkourWorldLabel::AParkourWorldLabel()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
@@ -60,16 +64,24 @@ AParkourWorldLabel::AParkourWorldLabel()
 	WidgetComponent->SetRelativeScale3D(FVector(WorldScale));
 }
 
+void AParkourWorldLabel::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	UpdateFacing();
+}
+
 void AParkourWorldLabel::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	UpdateLabelWidget();
+	UpdateFacing();
 }
 
 void AParkourWorldLabel::BeginPlay()
 {
 	Super::BeginPlay();
 	UpdateLabelWidget();
+	UpdateFacing();
 }
 
 void AParkourWorldLabel::SetLabelText(const FString& NewText, float NewFontSize)
@@ -95,4 +107,30 @@ void AParkourWorldLabel::UpdateLabelWidget()
 	{
 		LabelWidget->SetLabelText(LabelText, FontSize);
 	}
+}
+
+void AParkourWorldLabel::UpdateFacing()
+{
+	if (!bFacePlayerCamera || !GetWorld())
+	{
+		return;
+	}
+
+	const APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	if (!PlayerController || !PlayerController->PlayerCameraManager)
+	{
+		return;
+	}
+
+	const FVector ToCamera = PlayerController->PlayerCameraManager->GetCameraLocation() - GetActorLocation();
+	if (ToCamera.IsNearlyZero())
+	{
+		return;
+	}
+
+	FRotator FacingRotation = ToCamera.Rotation();
+	FacingRotation.Pitch = 0.0f;
+	FacingRotation.Roll = 0.0f;
+	FacingRotation.Yaw += FacingYawOffset;
+	SetActorRotation(FacingRotation);
 }

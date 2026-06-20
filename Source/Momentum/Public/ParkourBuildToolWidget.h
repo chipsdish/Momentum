@@ -38,6 +38,12 @@ protected:
 	void DuplicateSelected();
 
 	UFUNCTION()
+	void DecreaseSelectedSlope();
+
+	UFUNCTION()
+	void IncreaseSelectedSlope();
+
+	UFUNCTION()
 	void DeleteSelected();
 
 	UFUNCTION()

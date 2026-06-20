@@ -58,6 +58,9 @@ struct FParkourBuildPieceData
 	float SlopeAngle = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Parkour|Build")
+	bool bUseInwardBank = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Parkour|Build")
 	FString Label;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Parkour|Build")

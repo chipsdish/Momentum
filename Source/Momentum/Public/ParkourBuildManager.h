@@ -16,6 +16,8 @@ class MOMENTUM_API AParkourBuildManager : public AActor
 public:
 	AParkourBuildManager();
 
+	virtual void BeginPlay() override;
+
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	AParkourBuildPiece* AddDefaultPiece(EParkourBuildPieceType PieceType);
 
@@ -33,6 +35,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	AParkourBuildPiece* DuplicateSelectedPiece();
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void AdjustSelectedSlopeAngle(float DeltaAngle);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetSelectedSlopeAngle(float NewSlopeAngle);
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	void ClearRuntimePieces();
@@ -68,6 +76,7 @@ public:
 	float DuplicateOffset = 150.0f;
 
 protected:
+	void RegisterExistingBuildPieces();
 	UParkourBuildSaveGame* LoadOrCreateSaveGame() const;
 	FParkourBuildPieceData MakeDefaultPieceData(EParkourBuildPieceType PieceType) const;
 

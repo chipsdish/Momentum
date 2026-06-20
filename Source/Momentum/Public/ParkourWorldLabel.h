@@ -35,6 +35,7 @@ class MOMENTUM_API AParkourWorldLabel : public AActor
 public:
 	AParkourWorldLabel();
 
+	virtual void Tick(float DeltaSeconds) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
 
@@ -54,11 +55,20 @@ public:
 	float FontSize = 28.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Label")
-	FVector2D DrawSize = FVector2D(760.0f, 180.0f);
+	FVector2D DrawSize = FVector2D(1100.0f, 260.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Label")
-	float WorldScale = 0.55f;
+	float WorldScale = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Label")
+	bool bFacePlayerCamera = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Label")
+	float FacingYawOffset = 0.0f;
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Label")
 	void UpdateLabelWidget();
+
+protected:
+	void UpdateFacing();
 };

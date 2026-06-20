@@ -58,11 +58,16 @@ def spawn_lighting() -> None:
             sky_component.set_editor_property("intensity", 0.75)
 
 
-def spawn_course_cube(name: str, location, rotation, dimensions) -> None:
+def spawn_course_cube(name: str, location, rotation, dimensions, piece_type=None, slope_angle: float = 0.0, use_inward_bank: bool = False) -> None:
     actor = spawn_script_actor("/Script/Momentum.ParkourBuildPiece", name, location, rotation)
     if actor:
         actor.set_dimensions(unreal.Vector(*dimensions))
         actor.set_label_text(name)
+        if piece_type is not None:
+            actor.set_piece_type_name(piece_type)
+        actor.set_use_inward_bank(use_inward_bank)
+        if slope_angle > 0.0:
+            actor.set_slope_angle(slope_angle)
 
 
 def spawn_script_actor(class_path: str, name: str, location, rotation=(0.0, 0.0, 0.0)):
@@ -120,7 +125,7 @@ def create_test_level() -> None:
     spawn_course_cube("Start Platform", (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (600.0, 600.0, 80.0))
     spawn_label("Start / 起点", unreal.Vector(0.0, -360.0, 160.0), 64.0)
 
-    spawn_course_cube("Walkable Slope", (1300.0, 0.0, 60.0), (18.0, 0.0, 0.0), (900.0, 420.0, 70.0))
+    spawn_course_cube("Walkable Slope", (1300.0, 0.0, 60.0), (0.0, 0.0, 0.0), (900.0, 420.0, 70.0), "Ramp", 18.0, False)
     spawn_label("小坡: 正常 Grounded Movement", unreal.Vector(1300.0, -520.0, 260.0), 48.0)
 
     spawn_course_cube("Bunny Hop Block 1", (2500.0, 0.0, 70.0), (0.0, 0.0, 0.0), (250.0, 250.0, 70.0))
@@ -128,18 +133,18 @@ def create_test_level() -> None:
     spawn_course_cube("Bunny Hop Block 3", (4100.0, 0.0, 70.0), (0.0, 0.0, 0.0), (250.0, 250.0, 70.0))
     spawn_label("Bunny Hop / 手动连跳", unreal.Vector(3300.0, -520.0, 240.0), 48.0)
 
-    spawn_course_cube("Surf Ramp Left", (5600.0, -560.0, 170.0), (44.0, -10.0, 0.0), (1200.0, 500.0, 70.0))
+    spawn_course_cube("Surf Ramp Left", (5600.0, -560.0, 170.0), (0.0, 0.0, 0.0), (1200.0, 500.0, 70.0), "Ramp", 44.0, True)
     spawn_label("左侧大斜坡: 进入 Surf / Slide", unreal.Vector(5600.0, -1120.0, 430.0), 48.0)
 
-    spawn_course_cube("Acceleration Ramp Right", (7400.0, 560.0, 260.0), (50.0, 10.0, 0.0), (1400.0, 500.0, 70.0))
+    spawn_course_cube("Acceleration Ramp Right", (7400.0, 560.0, 260.0), (0.0, 0.0, 0.0), (1400.0, 500.0, 70.0), "AccelerationRamp", 50.0, True)
     spawn_label("右侧真实加速坡: 几何斜坡 + 重力分量\n不是 AddImpulse", unreal.Vector(7400.0, 1120.0, 560.0), 46.0)
 
-    spawn_course_cube("Curved Slide Left 1", (9200.0, -560.0, 390.0), (43.0, -18.0, 0.0), (1000.0, 430.0, 65.0))
-    spawn_course_cube("Curved Slide Right 2", (10800.0, 560.0, 500.0), (43.0, 18.0, 0.0), (1000.0, 430.0, 65.0))
-    spawn_course_cube("Curved Slide Left 3", (12400.0, -560.0, 610.0), (43.0, -18.0, 0.0), (1000.0, 430.0, 65.0))
+    spawn_course_cube("Curved Slide Left 1", (9200.0, -560.0, 390.0), (0.0, 0.0, 0.0), (1000.0, 430.0, 65.0), "Ramp", 43.0, True)
+    spawn_course_cube("Curved Slide Right 2", (10800.0, 560.0, 500.0), (0.0, 0.0, 0.0), (1000.0, 430.0, 65.0), "Ramp", 43.0, True)
+    spawn_course_cube("Curved Slide Left 3", (12400.0, -560.0, 610.0), (0.0, 0.0, 0.0), (1000.0, 430.0, 65.0), "Ramp", 43.0, True)
     spawn_label("弯曲滑坡: 左右交替分段拼接", unreal.Vector(10800.0, 0.0, 820.0), 48.0)
 
-    spawn_course_cube("Jump Ramp", (14200.0, 560.0, 660.0), (28.0, 18.0, 0.0), (650.0, 380.0, 75.0))
+    spawn_course_cube("Jump Ramp", (14200.0, 560.0, 660.0), (0.0, 18.0, 0.0), (650.0, 380.0, 75.0), "JumpRamp", 28.0, False)
     spawn_label("跳台斜坡: BHop / 空中转向", unreal.Vector(14200.0, 1060.0, 900.0), 48.0)
 
     spawn_course_cube("Air Platform", (15600.0, 560.0, 800.0), (0.0, 0.0, 0.0), (720.0, 560.0, 70.0))

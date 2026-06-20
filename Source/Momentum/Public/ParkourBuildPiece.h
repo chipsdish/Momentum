@@ -32,6 +32,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	void SetLabelText(const FString& NewLabel);
 
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetPieceType(EParkourBuildPieceType NewPieceType);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetPieceTypeName(const FString& NewPieceTypeName);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetSlopeAngle(float NewSlopeAngle);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void AdjustSlopeAngle(float DeltaAngle);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetUseInwardBank(bool bNewUseInwardBank);
+
+	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
+	float GetSlopeAngle() const { return PieceData.SlopeAngle; }
+
 	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
 	FGuid GetPieceId() const { return PieceData.PieceId; }
 
@@ -55,4 +73,6 @@ public:
 
 protected:
 	void ApplyPieceVisuals();
+	void ApplySlopeRotation();
+	float GetInwardBankRoll(float SlopeAngle) const;
 };

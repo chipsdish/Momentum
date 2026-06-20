@@ -143,6 +143,11 @@ void AParkourBuildCameraPawn::Input_Move(const FInputActionValue& Value)
 
 void AParkourBuildCameraPawn::Input_Look(const FInputActionValue& Value)
 {
+	if (!ShouldApplyLookInput())
+	{
+		return;
+	}
+
 	const FVector2D LookValue = Value.Get<FVector2D>();
 	ApplyLookInput(LookValue.X, LookValue.Y);
 }
@@ -185,6 +190,12 @@ void AParkourBuildCameraPawn::ApplyLookInput(float YawValue, float PitchValue)
 	SetActorRotation(NewRotation);
 }
 
+bool AParkourBuildCameraPawn::ShouldApplyLookInput() const
+{
+	const AParkourPlayerController* ParkourController = Cast<AParkourPlayerController>(GetController());
+	return ParkourController && ParkourController->IsBuildLookActive();
+}
+
 void AParkourBuildCameraPawn::Legacy_MoveForward(float Value)
 {
 	AddMovementInput(GetActorForwardVector(), Value);
@@ -197,11 +208,21 @@ void AParkourBuildCameraPawn::Legacy_MoveRight(float Value)
 
 void AParkourBuildCameraPawn::Legacy_Turn(float Value)
 {
+	if (!ShouldApplyLookInput())
+	{
+		return;
+	}
+
 	ApplyLookInput(Value, 0.0f);
 }
 
 void AParkourBuildCameraPawn::Legacy_LookUp(float Value)
 {
+	if (!ShouldApplyLookInput())
+	{
+		return;
+	}
+
 	ApplyLookInput(0.0f, Value);
 }
 

@@ -41,7 +41,7 @@ TSharedRef<SWidget> UParkourBuildToolWidget::RebuildWidget()
 	Panel->AddChildToVerticalBox(SelectionText);
 
 	UTextBlock* HelpText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("BuildHelpText"));
-	HelpText->SetText(FText::FromString(TEXT("左键选择 / 拖 Gizmo 改位置\nQ/E 升降相机, Shift 加速\nDelete/退格删除, Cmd/Ctrl+C 复制")));
+	HelpText->SetText(FText::FromString(TEXT("左键选择 / 拖 Gizmo 改位置\n右键按住环视, WASD/QE 移动相机\nDelete/退格删除, Cmd/Ctrl+C 复制")));
 	HelpText->SetFont(FSlateFontInfo(FCoreStyle::GetDefaultFont(), 15));
 	Panel->AddChildToVerticalBox(HelpText);
 
@@ -51,6 +51,8 @@ TSharedRef<SWidget> UParkourBuildToolWidget::RebuildWidget()
 	AddButton(Panel, TEXT("添加真实加速坡"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::AddAccelerationRamp);
 	AddButton(Panel, TEXT("添加空中平台"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::AddAirPlatform);
 	AddButton(Panel, TEXT("添加墙边平台"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::AddWallPlatform);
+	AddButton(Panel, TEXT("坡度 -5"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::DecreaseSelectedSlope);
+	AddButton(Panel, TEXT("坡度 +5"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::IncreaseSelectedSlope);
 	AddButton(Panel, TEXT("复制选中"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::DuplicateSelected);
 	AddButton(Panel, TEXT("删除选中"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::DeleteSelected);
 	AddButton(Panel, TEXT("保存布局 01"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::SaveDefaultLayout);
@@ -71,7 +73,7 @@ void UParkourBuildToolWidget::NativeTick(const FGeometry& MyGeometry, float InDe
 
 	const AParkourBuildManager* BuildManager = FindBuildManager();
 	const AParkourBuildPiece* SelectedPiece = BuildManager ? BuildManager->GetSelectedPiece() : nullptr;
-	SelectionText->SetText(FText::FromString(SelectedPiece ? FString::Printf(TEXT("选中: %s"), *SelectedPiece->GetName()) : TEXT("选中: 无")));
+	SelectionText->SetText(FText::FromString(SelectedPiece ? FString::Printf(TEXT("选中: %s\n坡度: %.0f"), *SelectedPiece->GetName(), SelectedPiece->GetSlopeAngle()) : TEXT("选中: 无")));
 }
 
 void UParkourBuildToolWidget::AddPlatform()
@@ -127,6 +129,22 @@ void UParkourBuildToolWidget::DuplicateSelected()
 	if (AParkourBuildManager* BuildManager = FindBuildManager())
 	{
 		BuildManager->DuplicateSelectedPiece();
+	}
+}
+
+void UParkourBuildToolWidget::DecreaseSelectedSlope()
+{
+	if (AParkourBuildManager* BuildManager = FindBuildManager())
+	{
+		BuildManager->AdjustSelectedSlopeAngle(-5.0f);
+	}
+}
+
+void UParkourBuildToolWidget::IncreaseSelectedSlope()
+{
+	if (AParkourBuildManager* BuildManager = FindBuildManager())
+	{
+		BuildManager->AdjustSelectedSlopeAngle(5.0f);
 	}
 }
 

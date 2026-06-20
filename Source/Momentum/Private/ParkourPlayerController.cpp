@@ -1,6 +1,7 @@
 #include "ParkourPlayerController.h"
 
 #include "Blueprint/UserWidget.h"
+#include "EngineUtils.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -55,6 +56,8 @@ void AParkourPlayerController::SetupInputComponent()
 
 	InputComponent->BindAction(TEXT("BuildPrimary"), IE_Pressed, this, &AParkourPlayerController::HandleBuildPrimaryPressed);
 	InputComponent->BindAction(TEXT("BuildPrimary"), IE_Released, this, &AParkourPlayerController::HandleBuildPrimaryReleased);
+	InputComponent->BindAction(TEXT("BuildSecondary"), IE_Pressed, this, &AParkourPlayerController::HandleBuildSecondaryPressed);
+	InputComponent->BindAction(TEXT("BuildSecondary"), IE_Released, this, &AParkourPlayerController::HandleBuildSecondaryReleased);
 }
 
 void AParkourPlayerController::ShowMainMenu()
@@ -181,6 +184,7 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 		{
 			BuildManager->ClearSelection();
 		}
+		ClearAllBuildSelectionVisuals();
 
 		if (GameplayPawn)
 		{
@@ -209,6 +213,7 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 		TransformGizmo = nullptr;
 		GameplayPawn = nullptr;
 		bDraggingGizmo = false;
+		bBuildLookActive = false;
 		RemoveWidget(BuildWidget);
 
 		if (AParkourGameMode* ParkourGameMode = GetWorld()->GetAuthGameMode<AParkourGameMode>())
@@ -289,7 +294,7 @@ AParkourBuildManager* AParkourPlayerController::FindBuildManager() const
 
 void AParkourPlayerController::HandleBuildPrimaryPressed()
 {
-	if (!bBuildModeEnabled)
+	if (!bBuildModeEnabled || bBuildLookActive)
 	{
 		return;
 	}
@@ -358,6 +363,31 @@ void AParkourPlayerController::HandleBuildPrimaryReleased()
 	}
 }
 
+void AParkourPlayerController::HandleBuildSecondaryPressed()
+{
+	if (!bBuildModeEnabled)
+	{
+		return;
+	}
+
+	bBuildLookActive = true;
+	bShowMouseCursor = false;
+
+	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+}
+
+void AParkourPlayerController::HandleBuildSecondaryReleased()
+{
+	if (!bBuildModeEnabled)
+	{
+		return;
+	}
+
+	bBuildLookActive = false;
+	SetBuildInputMode();
+}
+
 void AParkourPlayerController::UpdateBuildDrag()
 {
 	if (!bDraggingGizmo || !TransformGizmo)
@@ -370,6 +400,19 @@ void AParkourPlayerController::UpdateBuildDrag()
 	if (DeprojectMousePositionToWorld(RayOrigin, RayDirection))
 	{
 		TransformGizmo->UpdateDrag(RayOrigin, RayDirection);
+	}
+}
+
+void AParkourPlayerController::ClearAllBuildSelectionVisuals() const
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	for (TActorIterator<AParkourBuildPiece> It(GetWorld()); It; ++It)
+	{
+		It->SetSelected(false);
 	}
 }
 

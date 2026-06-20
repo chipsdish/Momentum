@@ -52,6 +52,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
 	bool IsBuildModeEnabled() const { return bBuildModeEnabled; }
 
+	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
+	bool IsBuildLookActive() const { return bBuildLookActive; }
+
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Run")
 	void HandleRunFinished(float FinalTime);
 
@@ -85,8 +88,11 @@ protected:
 	AParkourBuildManager* FindBuildManager() const;
 	void HandleBuildPrimaryPressed();
 	void HandleBuildPrimaryReleased();
+	void HandleBuildSecondaryPressed();
+	void HandleBuildSecondaryReleased();
 	void UpdateBuildDrag();
 	void SyncGizmoToSelection();
+	void ClearAllBuildSelectionVisuals() const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UUserWidget> MainMenuWidget;
@@ -109,4 +115,6 @@ protected:
 	bool bDraggingGizmo = false;
 
 	bool bBuildModeEnabled = false;
+
+	bool bBuildLookActive = false;
 };
