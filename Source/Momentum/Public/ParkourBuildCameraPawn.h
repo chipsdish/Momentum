@@ -82,6 +82,8 @@ protected:
 	void Input_DuplicateSelected(const FInputActionValue& Value);
 
 	bool ShouldApplyLookInput() const;
+	FVector GetHorizontalForwardVector() const;
+	FVector GetHorizontalRightVector() const;
 	void ApplyLookInput(float YawValue, float PitchValue);
 	void Legacy_MoveForward(float Value);
 	void Legacy_MoveRight(float Value);

@@ -299,6 +299,20 @@ void AParkourPlayerController::HandleBuildPrimaryPressed()
 		return;
 	}
 
+	FVector RayOrigin = FVector::ZeroVector;
+	FVector RayDirection = FVector::ForwardVector;
+	DeprojectMousePositionToWorld(RayOrigin, RayDirection);
+
+	if (TransformGizmo)
+	{
+		const EParkourGizmoAxis Axis = TransformGizmo->HitTestAxis(RayOrigin, RayDirection);
+		if (Axis != EParkourGizmoAxis::None)
+		{
+			bDraggingGizmo = TransformGizmo->BeginDrag(Axis, RayOrigin, RayDirection, PlayerCameraManager ? PlayerCameraManager->GetCameraRotation().Vector() : FVector::ForwardVector);
+			return;
+		}
+	}
+
 	FHitResult Hit;
 	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 	{
@@ -312,10 +326,6 @@ void AParkourPlayerController::HandleBuildPrimaryPressed()
 		}
 		return;
 	}
-
-	FVector RayOrigin = FVector::ZeroVector;
-	FVector RayDirection = FVector::ForwardVector;
-	DeprojectMousePositionToWorld(RayOrigin, RayDirection);
 
 	if (TransformGizmo && Hit.GetActor() == TransformGizmo)
 	{

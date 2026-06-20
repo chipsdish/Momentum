@@ -137,8 +137,8 @@ AParkourBuildManager* AParkourBuildCameraPawn::FindBuildManager() const
 void AParkourBuildCameraPawn::Input_Move(const FInputActionValue& Value)
 {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	AddMovementInput(GetActorForwardVector(), MoveValue.Y);
-	AddMovementInput(GetActorRightVector(), MoveValue.X);
+	AddMovementInput(GetHorizontalForwardVector(), MoveValue.Y);
+	AddMovementInput(GetHorizontalRightVector(), MoveValue.X);
 }
 
 void AParkourBuildCameraPawn::Input_Look(const FInputActionValue& Value)
@@ -185,7 +185,7 @@ void AParkourBuildCameraPawn::ApplyLookInput(float YawValue, float PitchValue)
 {
 	FRotator NewRotation = GetActorRotation();
 	NewRotation.Yaw = FRotator::NormalizeAxis(NewRotation.Yaw + YawValue);
-	NewRotation.Pitch = FMath::Clamp(FRotator::NormalizeAxis(NewRotation.Pitch + PitchValue), MinPitch, MaxPitch);
+	NewRotation.Pitch = FMath::Clamp(FRotator::NormalizeAxis(NewRotation.Pitch - PitchValue), MinPitch, MaxPitch);
 	NewRotation.Roll = 0.0f;
 	SetActorRotation(NewRotation);
 }
@@ -196,14 +196,26 @@ bool AParkourBuildCameraPawn::ShouldApplyLookInput() const
 	return ParkourController && ParkourController->IsBuildLookActive();
 }
 
+FVector AParkourBuildCameraPawn::GetHorizontalForwardVector() const
+{
+	const FRotator YawRotation(0.0f, GetActorRotation().Yaw, 0.0f);
+	return FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+}
+
+FVector AParkourBuildCameraPawn::GetHorizontalRightVector() const
+{
+	const FRotator YawRotation(0.0f, GetActorRotation().Yaw, 0.0f);
+	return FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+}
+
 void AParkourBuildCameraPawn::Legacy_MoveForward(float Value)
 {
-	AddMovementInput(GetActorForwardVector(), Value);
+	AddMovementInput(GetHorizontalForwardVector(), Value);
 }
 
 void AParkourBuildCameraPawn::Legacy_MoveRight(float Value)
 {
-	AddMovementInput(GetActorRightVector(), Value);
+	AddMovementInput(GetHorizontalRightVector(), Value);
 }
 
 void AParkourBuildCameraPawn::Legacy_Turn(float Value)

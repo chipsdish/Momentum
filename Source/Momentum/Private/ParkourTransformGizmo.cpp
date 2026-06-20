@@ -30,17 +30,17 @@ AParkourTransformGizmo::AParkourTransformGizmo()
 		}
 	}
 
-	XHandle->SetRelativeLocation(FVector(120.0f, 0.0f, 0.0f));
-	XHandle->SetRelativeScale3D(FVector(2.4f, 0.12f, 0.12f));
+	XHandle->SetRelativeLocation(FVector(160.0f, 0.0f, 0.0f));
+	XHandle->SetRelativeScale3D(FVector(3.2f, 0.28f, 0.28f));
 
-	YHandle->SetRelativeLocation(FVector(0.0f, 120.0f, 0.0f));
-	YHandle->SetRelativeScale3D(FVector(0.12f, 2.4f, 0.12f));
+	YHandle->SetRelativeLocation(FVector(0.0f, 160.0f, 0.0f));
+	YHandle->SetRelativeScale3D(FVector(0.28f, 3.2f, 0.28f));
 
-	ZHandle->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
-	ZHandle->SetRelativeScale3D(FVector(0.12f, 0.12f, 2.4f));
+	ZHandle->SetRelativeLocation(FVector(0.0f, 0.0f, 160.0f));
+	ZHandle->SetRelativeScale3D(FVector(0.28f, 0.28f, 3.2f));
 
-	XYHandle->SetRelativeLocation(FVector(55.0f, 55.0f, 0.0f));
-	XYHandle->SetRelativeScale3D(FVector(1.1f, 1.1f, 0.04f));
+	XYHandle->SetRelativeLocation(FVector(80.0f, 80.0f, 0.0f));
+	XYHandle->SetRelativeScale3D(FVector(1.6f, 1.6f, 0.06f));
 
 	SetGizmoVisible(false);
 }
@@ -64,6 +64,57 @@ void AParkourTransformGizmo::DetachFromTarget()
 	EndDrag();
 	TargetActor = nullptr;
 	SetGizmoVisible(false);
+}
+
+EParkourGizmoAxis AParkourTransformGizmo::HitTestAxis(const FVector& RayOrigin, const FVector& RayDirection) const
+{
+	if (!TargetActor || IsHidden())
+	{
+		return EParkourGizmoAxis::None;
+	}
+
+	EParkourGizmoAxis BestAxis = EParkourGizmoAxis::None;
+	float BestDistance = AxisPickRadius;
+	float BestRayParameter = TNumericLimits<float>::Max();
+	const FVector Origin = GetActorLocation();
+
+	const EParkourGizmoAxis Axes[] = { EParkourGizmoAxis::X, EParkourGizmoAxis::Y, EParkourGizmoAxis::Z };
+	for (EParkourGizmoAxis Axis : Axes)
+	{
+		const FVector AxisDirection = GetAxisDirection(Axis);
+		const FVector SegmentEnd = Origin + AxisDirection * HandleLength;
+		float Distance = 0.0f;
+		float RayParameter = 0.0f;
+		if (ComputeRaySegmentDistance(RayOrigin, RayDirection, Origin, SegmentEnd, Distance, RayParameter) && Distance <= BestDistance)
+		{
+			if (Distance < BestDistance || RayParameter < BestRayParameter)
+			{
+				BestDistance = Distance;
+				BestRayParameter = RayParameter;
+				BestAxis = Axis;
+			}
+		}
+	}
+
+	FVector PlanePoint = FVector::ZeroVector;
+	const FPlane XYPlane(Origin, FVector::UpVector);
+	const FVector SafeRayDirection = RayDirection.GetSafeNormal();
+	if (!SafeRayDirection.IsNearlyZero() && !FMath::IsNearlyZero(FVector::DotProduct(XYPlane.GetNormal(), SafeRayDirection)))
+	{
+		const FVector RayEnd = RayOrigin + SafeRayDirection * 100000.0f;
+		PlanePoint = FMath::LinePlaneIntersection(RayOrigin, RayEnd, XYPlane);
+		const FVector LocalPoint = PlanePoint - Origin;
+		if (LocalPoint.X >= 0.0f && LocalPoint.Y >= 0.0f && LocalPoint.X <= PlanePickSize && LocalPoint.Y <= PlanePickSize)
+		{
+			const float RayParameter = FVector::DotProduct(PlanePoint - RayOrigin, SafeRayDirection);
+			if (BestAxis == EParkourGizmoAxis::None || RayParameter < BestRayParameter)
+			{
+				BestAxis = EParkourGizmoAxis::XY;
+			}
+		}
+	}
+
+	return BestAxis;
 }
 
 bool AParkourTransformGizmo::BeginDrag(EParkourGizmoAxis Axis, const FVector& RayOrigin, const FVector& RayDirection, const FVector& CameraForward)
@@ -204,6 +255,46 @@ bool AParkourTransformGizmo::ComputeAxisDragParameter(const FVector& RayOrigin, 
 	const float AxisProjection = FVector::DotProduct(AxisDirection, AxisToRay);
 	const float RayProjection = FVector::DotProduct(SafeRayDirection, AxisToRay);
 	OutParameter = (AxisRayDot * RayProjection - AxisProjection) / Denominator;
+	return true;
+}
+
+bool AParkourTransformGizmo::ComputeRaySegmentDistance(const FVector& RayOrigin, const FVector& RayDirection, const FVector& SegmentStart, const FVector& SegmentEnd, float& OutDistance, float& OutRayParameter) const
+{
+	const FVector SafeRayDirection = RayDirection.GetSafeNormal();
+	const FVector SegmentDirection = SegmentEnd - SegmentStart;
+	const float SegmentLength = SegmentDirection.Size();
+	if (SafeRayDirection.IsNearlyZero() || SegmentLength <= KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	const FVector SafeSegmentDirection = SegmentDirection / SegmentLength;
+	const FVector RayToSegment = RayOrigin - SegmentStart;
+	const float RaySegmentDot = FVector::DotProduct(SafeRayDirection, SafeSegmentDirection);
+	const float Denominator = 1.0f - RaySegmentDot * RaySegmentDot;
+
+	float RayParameter = 0.0f;
+	float SegmentParameter = 0.0f;
+	if (FMath::IsNearlyZero(Denominator, 0.0001f))
+	{
+		SegmentParameter = FMath::Clamp(FVector::DotProduct(RayOrigin - SegmentStart, SafeSegmentDirection), 0.0f, SegmentLength);
+		const FVector SegmentPoint = SegmentStart + SafeSegmentDirection * SegmentParameter;
+		RayParameter = FMath::Max(FVector::DotProduct(SegmentPoint - RayOrigin, SafeRayDirection), 0.0f);
+	}
+	else
+	{
+		const float RayToSegmentOnRay = FVector::DotProduct(RayToSegment, SafeRayDirection);
+		const float RayToSegmentOnSegment = FVector::DotProduct(RayToSegment, SafeSegmentDirection);
+		RayParameter = (RaySegmentDot * RayToSegmentOnSegment - RayToSegmentOnRay) / Denominator;
+		SegmentParameter = (RayToSegmentOnSegment - RaySegmentDot * RayToSegmentOnRay) / Denominator;
+		RayParameter = FMath::Max(RayParameter, 0.0f);
+		SegmentParameter = FMath::Clamp(SegmentParameter, 0.0f, SegmentLength);
+	}
+
+	const FVector ClosestRayPoint = RayOrigin + SafeRayDirection * RayParameter;
+	const FVector ClosestSegmentPoint = SegmentStart + SafeSegmentDirection * SegmentParameter;
+	OutDistance = FVector::Dist(ClosestRayPoint, ClosestSegmentPoint);
+	OutRayParameter = RayParameter;
 	return true;
 }
 

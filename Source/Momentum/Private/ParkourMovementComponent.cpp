@@ -135,7 +135,14 @@ void UParkourMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 
 void UParkourMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
 {
+	const bool bWasSurfingOrSliding = ParkourMovementState == EParkourMovementState::Surfing || ParkourMovementState == EParkourMovementState::Sliding;
 	Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+
+	if (PreviousMovementMode == MOVE_Walking && MovementMode == MOVE_Falling && bWasSurfingOrSliding && bHasLastSurfSurfaceVelocity)
+	{
+		Velocity = LastSurfSurfaceVelocity;
+		bHasLastSurfSurfaceVelocity = false;
+	}
 
 	if (MovementMode == MOVE_Walking)
 	{
@@ -175,6 +182,7 @@ void UParkourMovementComponent::UpdateMovementState(float DeltaTime)
 	else
 	{
 		ParkourMovementState = EParkourMovementState::Grounded;
+		bHasLastSurfSurfaceVelocity = false;
 	}
 }
 
@@ -239,6 +247,13 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 
 		Accelerate(WishDirection, MaxSpeed * InputAmount, SurfControlAcceleration, DeltaTime);
 	}
+
+	LastSurfSurfaceVelocity = FVector::VectorPlaneProject(Velocity, FloorNormal);
+	if (LastSurfSurfaceVelocity.Z < Velocity.Z)
+	{
+		LastSurfSurfaceVelocity.Z = Velocity.Z;
+	}
+	bHasLastSurfSurfaceVelocity = true;
 }
 
 bool UParkourMovementComponent::CheckSlope()

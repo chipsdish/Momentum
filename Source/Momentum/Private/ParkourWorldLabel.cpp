@@ -15,7 +15,10 @@ void UParkourWorldLabelWidget::SetLabelText(const FString& NewText, float NewFon
 	if (LabelTextBlock)
 	{
 		LabelTextBlock->SetText(FText::FromString(CurrentText));
-		LabelTextBlock->SetFont(FSlateFontInfo(FCoreStyle::GetDefaultFont(), CurrentFontSize));
+		FSlateFontInfo FontInfo(FCoreStyle::GetDefaultFont(), CurrentFontSize);
+		FontInfo.OutlineSettings.OutlineSize = 3;
+		FontInfo.OutlineSettings.OutlineColor = FLinearColor::Black;
+		LabelTextBlock->SetFont(FontInfo);
 	}
 }
 
@@ -28,7 +31,7 @@ TSharedRef<SWidget> UParkourWorldLabelWidget::RebuildWidget()
 	}
 
 	UBorder* Root = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("LabelRoot"));
-	Root->SetBrushColor(FLinearColor(0.02f, 0.025f, 0.035f, 0.88f));
+	Root->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
 	Root->SetPadding(FMargin(14.0f, 10.0f));
 	WidgetTree->RootWidget = Root;
 
@@ -37,7 +40,10 @@ TSharedRef<SWidget> UParkourWorldLabelWidget::RebuildWidget()
 	LabelTextBlock->SetAutoWrapText(true);
 	LabelTextBlock->SetJustification(ETextJustify::Center);
 	LabelTextBlock->SetColorAndOpacity(FSlateColor(FLinearColor(0.90f, 0.96f, 1.0f, 1.0f)));
-	LabelTextBlock->SetFont(FSlateFontInfo(FCoreStyle::GetDefaultFont(), CurrentFontSize));
+	FSlateFontInfo FontInfo(FCoreStyle::GetDefaultFont(), CurrentFontSize);
+	FontInfo.OutlineSettings.OutlineSize = 3;
+	FontInfo.OutlineSettings.OutlineColor = FLinearColor::Black;
+	LabelTextBlock->SetFont(FontInfo);
 	LabelTextBlock->SetShadowOffset(FVector2D(2.0f, 2.0f));
 	LabelTextBlock->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
 	Root->SetContent(LabelTextBlock);

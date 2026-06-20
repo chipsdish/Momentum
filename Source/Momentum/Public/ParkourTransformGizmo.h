@@ -39,6 +39,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Parkour|Gizmo")
 	bool IsDragging() const { return DragAxis != EParkourGizmoAxis::None; }
 
+	UFUNCTION(BlueprintPure, Category = "Parkour|Gizmo")
+	EParkourGizmoAxis HitTestAxis(const FVector& RayOrigin, const FVector& RayDirection) const;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Gizmo")
 	TObjectPtr<USceneComponent> SceneRoot;
 
@@ -57,10 +60,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Gizmo")
 	float SnapSize = 50.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Gizmo")
+	float AxisPickRadius = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Gizmo")
+	float HandleLength = 320.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Gizmo")
+	float PlanePickSize = 170.0f;
+
 protected:
 	FVector GetAxisDirection(EParkourGizmoAxis Axis) const;
 	bool IntersectDragPlane(const FVector& RayOrigin, const FVector& RayDirection, FVector& OutPoint) const;
 	bool ComputeAxisDragParameter(const FVector& RayOrigin, const FVector& RayDirection, float& OutParameter) const;
+	bool ComputeRaySegmentDistance(const FVector& RayOrigin, const FVector& RayDirection, const FVector& SegmentStart, const FVector& SegmentEnd, float& OutDistance, float& OutRayParameter) const;
 	FVector SnapLocation(const FVector& Location) const;
 	void SetGizmoVisible(bool bVisible);
 

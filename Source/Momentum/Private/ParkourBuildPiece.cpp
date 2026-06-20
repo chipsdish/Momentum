@@ -23,6 +23,8 @@ AParkourBuildPiece::AParkourBuildPiece()
 	SelectionBounds->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SelectionBounds->SetCollisionResponseToAllChannels(ECR_Ignore);
 	SelectionBounds->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	SelectionBounds->SetHiddenInGame(true);
+	SelectionBounds->SetVisibility(false);
 
 	LabelText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("LabelText"));
 	LabelText->SetupAttachment(SceneRoot);
@@ -51,6 +53,10 @@ void AParkourBuildPiece::ConfigureFromData(const FParkourBuildPieceData& NewPiec
 	}
 
 	SetActorTransform(PieceData.Transform);
+	if (PieceData.SlopeAngle > KINDA_SMALL_NUMBER)
+	{
+		ApplySlopeRotation();
+	}
 	ApplyPieceVisuals();
 }
 
@@ -169,6 +175,8 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 	{
 		SelectionBounds->SetBoxExtent(PieceData.Dimensions.ComponentMax(FVector(10.0f)) * 0.5f);
 		SelectionBounds->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		SelectionBounds->SetHiddenInGame(true);
+		SelectionBounds->SetVisibility(false);
 	}
 
 	if (LabelText)
@@ -201,6 +209,6 @@ void AParkourBuildPiece::ApplySlopeRotation()
 
 float AParkourBuildPiece::GetInwardBankRoll(float SlopeAngle) const
 {
-	const float SideSign = GetActorLocation().Y >= 0.0f ? 1.0f : -1.0f;
+	const float SideSign = GetActorLocation().Y >= 0.0f ? -1.0f : 1.0f;
 	return FMath::Abs(SlopeAngle) * SideSign;
 }

@@ -125,6 +125,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Debug")
 	FVector LastFloorNormal = FVector::UpVector;
 
+	FVector LastSurfSurfaceVelocity = FVector::ZeroVector;
+	bool bHasLastSurfSurfaceVelocity = false;
+
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	float LastJumpPressedTime = -10000.0f;
 	bool bJumpRequestConsumed = true;
