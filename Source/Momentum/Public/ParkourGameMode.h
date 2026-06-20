@@ -44,10 +44,16 @@ public:
 	FParkourRunFinishedSignature OnRunFinished;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Run")
-	bool bAutoStartRunTimer = false;
+	bool bAutoStartRunTimer = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Greybox")
+	bool bSpawnDefaultGreyboxCourse = true;
 
 protected:
 	FTransform ResolveRespawnTransform(AController* Controller);
+	void SpawnDefaultGreyboxCourse();
+	AActor* SpawnGreyboxBlock(const FString& Name, const FVector& Location, const FRotator& Rotation, const FVector& Dimensions);
+	void SpawnCourseLabel(const FString& Text, const FVector& Location);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Respawn")
 	FTransform CurrentRespawnTransform = FTransform::Identity;

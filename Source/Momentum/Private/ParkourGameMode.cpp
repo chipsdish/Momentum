@@ -3,9 +3,17 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerStart.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/TextRenderActor.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/BoxComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "ParkourBuildManager.h"
 #include "ParkourCharacter.h"
+#include "ParkourFinishVolume.h"
 #include "ParkourPlayerController.h"
+#include "ParkourRespawnVolume.h"
 
 AParkourGameMode::AParkourGameMode()
 {
@@ -16,6 +24,11 @@ AParkourGameMode::AParkourGameMode()
 void AParkourGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (bSpawnDefaultGreyboxCourse)
+	{
+		SpawnDefaultGreyboxCourse();
+	}
 
 	if (bAutoStartRunTimer)
 	{
@@ -160,4 +173,103 @@ FTransform AParkourGameMode::ResolveRespawnTransform(AController* Controller)
 	}
 
 	return FTransform::Identity;
+}
+
+void AParkourGameMode::SpawnDefaultGreyboxCourse()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	SetRespawnTransform(FTransform(FRotator(0.0f, 0.0f, 0.0f), FVector(0.0f, 0.0f, 220.0f)));
+
+	World->SpawnActor<APlayerStart>(APlayerStart::StaticClass(), FVector(0.0f, 0.0f, 180.0f), FRotator::ZeroRotator);
+
+	SpawnGreyboxBlock(TEXT("Start Platform"), FVector(0.0f, 0.0f, 0.0f), FRotator::ZeroRotator, FVector(600.0f, 600.0f, 80.0f));
+	SpawnCourseLabel(TEXT("Start / 起点"), FVector(0.0f, -360.0f, 160.0f));
+
+	SpawnGreyboxBlock(TEXT("Walkable Slope"), FVector(900.0f, 0.0f, 60.0f), FRotator(18.0f, 0.0f, 0.0f), FVector(900.0f, 420.0f, 70.0f));
+	SpawnCourseLabel(TEXT("小坡: 正常行走"), FVector(900.0f, -360.0f, 240.0f));
+
+	SpawnGreyboxBlock(TEXT("Bunny Hop 1"), FVector(1700.0f, 0.0f, 70.0f), FRotator::ZeroRotator, FVector(250.0f, 250.0f, 70.0f));
+	SpawnGreyboxBlock(TEXT("Bunny Hop 2"), FVector(2150.0f, 0.0f, 70.0f), FRotator::ZeroRotator, FVector(250.0f, 250.0f, 70.0f));
+	SpawnGreyboxBlock(TEXT("Bunny Hop 3"), FVector(2600.0f, 0.0f, 70.0f), FRotator::ZeroRotator, FVector(250.0f, 250.0f, 70.0f));
+	SpawnCourseLabel(TEXT("Bunny Hop / 手动连跳"), FVector(2150.0f, -330.0f, 220.0f));
+
+	SpawnGreyboxBlock(TEXT("Surf Ramp"), FVector(3500.0f, 0.0f, 170.0f), FRotator(44.0f, 0.0f, 0.0f), FVector(1200.0f, 500.0f, 70.0f));
+	SpawnCourseLabel(TEXT("大斜坡: Surf"), FVector(3500.0f, -420.0f, 420.0f));
+
+	SpawnGreyboxBlock(TEXT("Acceleration Ramp"), FVector(4700.0f, 0.0f, 260.0f), FRotator(50.0f, 0.0f, 0.0f), FVector(1400.0f, 500.0f, 70.0f));
+	SpawnCourseLabel(TEXT("真实加速坡: 无 AddImpulse"), FVector(4700.0f, -440.0f, 540.0f));
+
+	SpawnGreyboxBlock(TEXT("Air Platform"), FVector(6100.0f, 0.0f, 420.0f), FRotator::ZeroRotator, FVector(500.0f, 500.0f, 70.0f));
+	SpawnCourseLabel(TEXT("空中平台"), FVector(6100.0f, -360.0f, 580.0f));
+
+	AParkourFinishVolume* FinishVolume = World->SpawnActor<AParkourFinishVolume>(AParkourFinishVolume::StaticClass(), FVector(6850.0f, 0.0f, 540.0f), FRotator::ZeroRotator);
+	if (FinishVolume && FinishVolume->TriggerVolume)
+	{
+		FinishVolume->TriggerVolume->SetBoxExtent(FVector(160.0f, 240.0f, 240.0f));
+	}
+	SpawnCourseLabel(TEXT("Finish / 终点"), FVector(6850.0f, -320.0f, 780.0f));
+
+	AParkourRespawnVolume* RespawnVolume = World->SpawnActor<AParkourRespawnVolume>(AParkourRespawnVolume::StaticClass(), FVector(3400.0f, 0.0f, -900.0f), FRotator::ZeroRotator);
+	if (RespawnVolume && RespawnVolume->TriggerVolume)
+	{
+		RespawnVolume->TriggerVolume->SetBoxExtent(FVector(8000.0f, 3000.0f, 160.0f));
+	}
+
+	World->SpawnActor<AParkourBuildManager>(AParkourBuildManager::StaticClass(), FVector(0.0f, 900.0f, 120.0f), FRotator::ZeroRotator);
+}
+
+AActor* AParkourGameMode::SpawnGreyboxBlock(const FString& Name, const FVector& Location, const FRotator& Rotation, const FVector& Dimensions)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	static UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	AStaticMeshActor* Block = World->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Location, Rotation);
+	if (!Block)
+	{
+		return nullptr;
+	}
+
+#if WITH_EDITOR
+	Block->SetActorLabel(Name);
+#endif
+
+	UStaticMeshComponent* MeshComponent = Block->GetStaticMeshComponent();
+	if (MeshComponent)
+	{
+		MeshComponent->SetStaticMesh(CubeMesh);
+		MeshComponent->SetMobility(EComponentMobility::Static);
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
+	}
+
+	Block->SetActorScale3D(Dimensions / 100.0f);
+	return Block;
+}
+
+void AParkourGameMode::SpawnCourseLabel(const FString& Text, const FVector& Location)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	ATextRenderActor* Label = World->SpawnActor<ATextRenderActor>(ATextRenderActor::StaticClass(), Location, FRotator(0.0f, 180.0f, 0.0f));
+	if (!Label || !Label->GetTextRender())
+	{
+		return;
+	}
+
+	Label->GetTextRender()->SetText(FText::FromString(Text));
+	Label->GetTextRender()->SetWorldSize(72.0f);
+	Label->GetTextRender()->SetHorizontalAlignment(EHTA_Center);
 }

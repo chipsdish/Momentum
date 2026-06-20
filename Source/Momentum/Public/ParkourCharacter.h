@@ -74,4 +74,16 @@ protected:
 	void Input_SprintCompleted(const FInputActionValue& Value);
 	void Input_PauseStarted(const FInputActionValue& Value);
 	void Input_ToggleBuildModeStarted(const FInputActionValue& Value);
+
+	void Legacy_MoveForward(float Value);
+	void Legacy_MoveRight(float Value);
+	void Legacy_Turn(float Value);
+	void Legacy_LookUp(float Value);
+	void Legacy_JumpPressed();
+	void Legacy_JumpReleased();
+	void Legacy_CrouchPressed();
+	void Legacy_CrouchReleased();
+	void Legacy_ToggleBuildMode();
+
+	FVector2D LegacyMoveInput = FVector2D::ZeroVector;
 };

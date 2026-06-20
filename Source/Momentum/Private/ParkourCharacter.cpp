@@ -87,6 +87,16 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	{
 		EnhancedInputComponent->BindAction(ToggleBuildModeAction, ETriggerEvent::Started, this, &AParkourCharacter::Input_ToggleBuildModeStarted);
 	}
+
+	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AParkourCharacter::Legacy_MoveForward);
+	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AParkourCharacter::Legacy_MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AParkourCharacter::Legacy_Turn);
+	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AParkourCharacter::Legacy_LookUp);
+	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &AParkourCharacter::Legacy_JumpPressed);
+	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Released, this, &AParkourCharacter::Legacy_JumpReleased);
+	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AParkourCharacter::Legacy_CrouchPressed);
+	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Released, this, &AParkourCharacter::Legacy_CrouchReleased);
+	PlayerInputComponent->BindAction(TEXT("ToggleBuildMode"), IE_Pressed, this, &AParkourCharacter::Legacy_ToggleBuildMode);
 }
 
 UParkourMovementComponent* AParkourCharacter::GetParkourMovementComponent() const
@@ -201,6 +211,68 @@ void AParkourCharacter::Input_PauseStarted(const FInputActionValue& Value)
 }
 
 void AParkourCharacter::Input_ToggleBuildModeStarted(const FInputActionValue& Value)
+{
+	if (AParkourPlayerController* ParkourController = Cast<AParkourPlayerController>(GetController()))
+	{
+		ParkourController->ToggleBuildMode();
+	}
+}
+
+void AParkourCharacter::Legacy_MoveForward(float Value)
+{
+	LegacyMoveInput.Y = Value;
+	if (UParkourMovementComponent* ParkourMovement = GetParkourMovementComponent())
+	{
+		ParkourMovement->SetMoveInput(LegacyMoveInput);
+	}
+}
+
+void AParkourCharacter::Legacy_MoveRight(float Value)
+{
+	LegacyMoveInput.X = Value;
+	if (UParkourMovementComponent* ParkourMovement = GetParkourMovementComponent())
+	{
+		ParkourMovement->SetMoveInput(LegacyMoveInput);
+	}
+}
+
+void AParkourCharacter::Legacy_Turn(float Value)
+{
+	AddControllerYawInput(Value);
+}
+
+void AParkourCharacter::Legacy_LookUp(float Value)
+{
+	AddControllerPitchInput(Value);
+}
+
+void AParkourCharacter::Legacy_JumpPressed()
+{
+	if (UParkourMovementComponent* ParkourMovement = GetParkourMovementComponent())
+	{
+		ParkourMovement->RequestJumpPressed();
+	}
+}
+
+void AParkourCharacter::Legacy_JumpReleased()
+{
+	if (UParkourMovementComponent* ParkourMovement = GetParkourMovementComponent())
+	{
+		ParkourMovement->RequestJumpReleased();
+	}
+}
+
+void AParkourCharacter::Legacy_CrouchPressed()
+{
+	Crouch();
+}
+
+void AParkourCharacter::Legacy_CrouchReleased()
+{
+	UnCrouch();
+}
+
+void AParkourCharacter::Legacy_ToggleBuildMode()
 {
 	if (AParkourPlayerController* ParkourController = Cast<AParkourPlayerController>(GetController()))
 	{
