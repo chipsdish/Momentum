@@ -6,11 +6,21 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "ParkourBuildCameraPawn.h"
+#include "ParkourBuildManager.h"
+#include "ParkourBuildPiece.h"
+#include "ParkourBuildToolWidget.h"
 #include "ParkourGameMode.h"
+#include "ParkourHUDWidget.h"
+#include "ParkourMainMenuWidget.h"
+#include "ParkourTransformGizmo.h"
 
 AParkourPlayerController::AParkourPlayerController()
 {
+	PrimaryActorTick.bCanEverTick = true;
 	bShowMouseCursor = false;
+	MainMenuWidgetClass = UParkourMainMenuWidget::StaticClass();
+	HUDWidgetClass = UParkourHUDWidget::StaticClass();
+	BuildWidgetClass = UParkourBuildToolWidget::StaticClass();
 }
 
 void AParkourPlayerController::BeginPlay()
@@ -26,6 +36,25 @@ void AParkourPlayerController::BeginPlay()
 	{
 		StartGameplaySession();
 	}
+}
+
+void AParkourPlayerController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (bBuildModeEnabled)
+	{
+		UpdateBuildDrag();
+		SyncGizmoToSelection();
+	}
+}
+
+void AParkourPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	InputComponent->BindAction(TEXT("BuildPrimary"), IE_Pressed, this, &AParkourPlayerController::HandleBuildPrimaryPressed);
+	InputComponent->BindAction(TEXT("BuildPrimary"), IE_Released, this, &AParkourPlayerController::HandleBuildPrimaryReleased);
 }
 
 void AParkourPlayerController::ShowMainMenu()
@@ -131,6 +160,8 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 			Possess(BuildCameraPawn);
 		}
 
+		TransformGizmo = GetWorld()->SpawnActor<AParkourTransformGizmo>(AParkourTransformGizmo::StaticClass(), SpawnTransform);
+
 		if (BuildWidgetClass && !BuildWidget)
 		{
 			BuildWidget = CreateWidget<UUserWidget>(this, BuildWidgetClass);
@@ -165,8 +196,15 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 			CameraToDestroy->Destroy();
 		}
 
+		if (TransformGizmo)
+		{
+			TransformGizmo->Destroy();
+		}
+
 		BuildCameraPawn = nullptr;
+		TransformGizmo = nullptr;
 		GameplayPawn = nullptr;
+		bDraggingGizmo = false;
 		RemoveWidget(BuildWidget);
 
 		if (AParkourGameMode* ParkourGameMode = GetWorld()->GetAuthGameMode<AParkourGameMode>())
@@ -221,5 +259,115 @@ void AParkourPlayerController::RemoveWidget(TObjectPtr<UUserWidget>& Widget)
 	{
 		Widget->RemoveFromParent();
 		Widget = nullptr;
+	}
+}
+
+AParkourBuildManager* AParkourPlayerController::FindBuildManager() const
+{
+	return Cast<AParkourBuildManager>(UGameplayStatics::GetActorOfClass(this, AParkourBuildManager::StaticClass()));
+}
+
+void AParkourPlayerController::HandleBuildPrimaryPressed()
+{
+	if (!bBuildModeEnabled)
+	{
+		return;
+	}
+
+	FHitResult Hit;
+	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
+	{
+		if (AParkourBuildManager* BuildManager = FindBuildManager())
+		{
+			BuildManager->ClearSelection();
+		}
+		if (TransformGizmo)
+		{
+			TransformGizmo->DetachFromTarget();
+		}
+		return;
+	}
+
+	FVector RayOrigin = FVector::ZeroVector;
+	FVector RayDirection = FVector::ForwardVector;
+	DeprojectMousePositionToWorld(RayOrigin, RayDirection);
+
+	if (TransformGizmo && Hit.GetActor() == TransformGizmo)
+	{
+		EParkourGizmoAxis Axis = EParkourGizmoAxis::None;
+		if (Hit.GetComponent() == TransformGizmo->XHandle)
+		{
+			Axis = EParkourGizmoAxis::X;
+		}
+		else if (Hit.GetComponent() == TransformGizmo->YHandle)
+		{
+			Axis = EParkourGizmoAxis::Y;
+		}
+		else if (Hit.GetComponent() == TransformGizmo->ZHandle)
+		{
+			Axis = EParkourGizmoAxis::Z;
+		}
+		else if (Hit.GetComponent() == TransformGizmo->XYHandle)
+		{
+			Axis = EParkourGizmoAxis::XY;
+		}
+
+		bDraggingGizmo = Axis != EParkourGizmoAxis::None && TransformGizmo->BeginDrag(Axis, RayOrigin, RayDirection, PlayerCameraManager ? PlayerCameraManager->GetCameraRotation().Vector() : FVector::ForwardVector);
+		return;
+	}
+
+	if (AParkourBuildPiece* BuildPiece = Cast<AParkourBuildPiece>(Hit.GetActor()))
+	{
+		if (AParkourBuildManager* BuildManager = FindBuildManager())
+		{
+			BuildManager->SelectPiece(BuildPiece);
+		}
+		if (TransformGizmo)
+		{
+			TransformGizmo->AttachToTarget(BuildPiece);
+		}
+	}
+}
+
+void AParkourPlayerController::HandleBuildPrimaryReleased()
+{
+	bDraggingGizmo = false;
+	if (TransformGizmo)
+	{
+		TransformGizmo->EndDrag();
+	}
+}
+
+void AParkourPlayerController::UpdateBuildDrag()
+{
+	if (!bDraggingGizmo || !TransformGizmo)
+	{
+		return;
+	}
+
+	FVector RayOrigin = FVector::ZeroVector;
+	FVector RayDirection = FVector::ForwardVector;
+	if (DeprojectMousePositionToWorld(RayOrigin, RayDirection))
+	{
+		TransformGizmo->UpdateDrag(RayOrigin, RayDirection);
+	}
+}
+
+void AParkourPlayerController::SyncGizmoToSelection()
+{
+	if (!TransformGizmo || TransformGizmo->IsDragging())
+	{
+		return;
+	}
+
+	const AParkourBuildManager* BuildManager = FindBuildManager();
+	AParkourBuildPiece* SelectedPiece = BuildManager ? BuildManager->GetSelectedPiece() : nullptr;
+	if (SelectedPiece && TransformGizmo->GetTargetActor() != SelectedPiece)
+	{
+		TransformGizmo->AttachToTarget(SelectedPiece);
+	}
+	else if (!SelectedPiece && TransformGizmo->GetTargetActor())
+	{
+		TransformGizmo->DetachFromTarget();
 	}
 }

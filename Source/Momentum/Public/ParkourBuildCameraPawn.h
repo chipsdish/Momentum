@@ -74,4 +74,16 @@ protected:
 	void Input_AdjustSpeed(const FInputActionValue& Value);
 	void Input_DeleteSelected(const FInputActionValue& Value);
 	void Input_DuplicateSelected(const FInputActionValue& Value);
+
+	void Legacy_MoveForward(float Value);
+	void Legacy_MoveRight(float Value);
+	void Legacy_Turn(float Value);
+	void Legacy_LookUp(float Value);
+	void Legacy_Elevate(float Value);
+	void Legacy_BoostPressed();
+	void Legacy_BoostReleased();
+	void Legacy_AdjustSpeed(float Value);
+	void Legacy_DeleteSelected();
+	void Legacy_DuplicateSelected();
+	void Legacy_ToggleBuildMode();
 };

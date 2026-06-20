@@ -6,6 +6,7 @@
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Kismet/GameplayStatics.h"
 #include "ParkourBuildManager.h"
+#include "ParkourPlayerController.h"
 
 AParkourBuildCameraPawn::AParkourBuildCameraPawn()
 {
@@ -26,6 +27,18 @@ void AParkourBuildCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerI
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	AddBuildMappingContext();
+
+	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AParkourBuildCameraPawn::Legacy_MoveForward);
+	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AParkourBuildCameraPawn::Legacy_MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AParkourBuildCameraPawn::Legacy_Turn);
+	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AParkourBuildCameraPawn::Legacy_LookUp);
+	PlayerInputComponent->BindAxis(TEXT("Elevate"), this, &AParkourBuildCameraPawn::Legacy_Elevate);
+	PlayerInputComponent->BindAxis(TEXT("AdjustBuildSpeed"), this, &AParkourBuildCameraPawn::Legacy_AdjustSpeed);
+	PlayerInputComponent->BindAction(TEXT("BuildBoost"), IE_Pressed, this, &AParkourBuildCameraPawn::Legacy_BoostPressed);
+	PlayerInputComponent->BindAction(TEXT("BuildBoost"), IE_Released, this, &AParkourBuildCameraPawn::Legacy_BoostReleased);
+	PlayerInputComponent->BindAction(TEXT("DeleteSelected"), IE_Pressed, this, &AParkourBuildCameraPawn::Legacy_DeleteSelected);
+	PlayerInputComponent->BindAction(TEXT("DuplicateSelected"), IE_Pressed, this, &AParkourBuildCameraPawn::Legacy_DuplicateSelected);
+	PlayerInputComponent->BindAction(TEXT("ToggleBuildMode"), IE_Pressed, this, &AParkourBuildCameraPawn::Legacy_ToggleBuildMode);
 
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EnhancedInputComponent)
@@ -160,6 +173,79 @@ void AParkourBuildCameraPawn::Input_DuplicateSelected(const FInputActionValue& V
 	if (AParkourBuildManager* BuildManager = FindBuildManager())
 	{
 		BuildManager->DuplicateSelectedPiece();
+	}
+}
+
+void AParkourBuildCameraPawn::Legacy_MoveForward(float Value)
+{
+	AddMovementInput(GetActorForwardVector(), Value);
+}
+
+void AParkourBuildCameraPawn::Legacy_MoveRight(float Value)
+{
+	AddMovementInput(GetActorRightVector(), Value);
+}
+
+void AParkourBuildCameraPawn::Legacy_Turn(float Value)
+{
+	AddActorWorldRotation(FRotator(0.0f, Value, 0.0f));
+}
+
+void AParkourBuildCameraPawn::Legacy_LookUp(float Value)
+{
+	AddActorLocalRotation(FRotator(Value, 0.0f, 0.0f));
+}
+
+void AParkourBuildCameraPawn::Legacy_Elevate(float Value)
+{
+	AddMovementInput(FVector::UpVector, Value);
+}
+
+void AParkourBuildCameraPawn::Legacy_BoostPressed()
+{
+	if (FloatingMovement)
+	{
+		FloatingMovement->MaxSpeed = BoostFlySpeed;
+	}
+}
+
+void AParkourBuildCameraPawn::Legacy_BoostReleased()
+{
+	if (FloatingMovement)
+	{
+		FloatingMovement->MaxSpeed = BaseFlySpeed;
+	}
+}
+
+void AParkourBuildCameraPawn::Legacy_AdjustSpeed(float Value)
+{
+	if (FMath::IsNearlyZero(Value))
+	{
+		return;
+	}
+
+	BaseFlySpeed = FMath::Max(250.0f, BaseFlySpeed + Value * SpeedStep);
+	if (FloatingMovement)
+	{
+		FloatingMovement->MaxSpeed = BaseFlySpeed;
+	}
+}
+
+void AParkourBuildCameraPawn::Legacy_DeleteSelected()
+{
+	Input_DeleteSelected(FInputActionValue());
+}
+
+void AParkourBuildCameraPawn::Legacy_DuplicateSelected()
+{
+	Input_DuplicateSelected(FInputActionValue());
+}
+
+void AParkourBuildCameraPawn::Legacy_ToggleBuildMode()
+{
+	if (AParkourPlayerController* ParkourController = Cast<AParkourPlayerController>(GetController()))
+	{
+		ParkourController->ToggleBuildMode();
 	}
 }
 

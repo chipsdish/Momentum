@@ -49,8 +49,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Greybox")
 	bool bSpawnDefaultGreyboxCourse = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Greybox")
+	FName PlacedCourseTag = TEXT("MomentumCourseStatic");
+
 protected:
 	FTransform ResolveRespawnTransform(AController* Controller);
+	bool HasPlacedGreyboxCourse() const;
 	void SpawnDefaultGreyboxCourse();
 	AActor* SpawnGreyboxBlock(const FString& Name, const FVector& Location, const FRotator& Rotation, const FVector& Dimensions);
 	void SpawnCourseLabel(const FString& Text, const FVector& Location);

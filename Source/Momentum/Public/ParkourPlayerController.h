@@ -5,6 +5,9 @@
 #include "ParkourPlayerController.generated.h"
 
 class AParkourBuildCameraPawn;
+class AParkourBuildManager;
+class AParkourBuildPiece;
+class AParkourTransformGizmo;
 class UUserWidget;
 
 UCLASS()
@@ -16,6 +19,8 @@ public:
 	AParkourPlayerController();
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void SetupInputComponent() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|UI")
 	void ShowMainMenu();
@@ -76,6 +81,11 @@ protected:
 	void SetGameplayInputMode();
 	void CreateHUD();
 	void RemoveWidget(TObjectPtr<UUserWidget>& Widget);
+	AParkourBuildManager* FindBuildManager() const;
+	void HandleBuildPrimaryPressed();
+	void HandleBuildPrimaryReleased();
+	void UpdateBuildDrag();
+	void SyncGizmoToSelection();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UUserWidget> MainMenuWidget;
@@ -91,6 +101,11 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<AParkourBuildCameraPawn> BuildCameraPawn;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AParkourTransformGizmo> TransformGizmo;
+
+	bool bDraggingGizmo = false;
 
 	bool bBuildModeEnabled = false;
 };

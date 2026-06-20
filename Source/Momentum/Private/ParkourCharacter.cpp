@@ -43,6 +43,16 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	AddPlayerMappingContext();
 
+	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AParkourCharacter::Legacy_MoveForward);
+	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AParkourCharacter::Legacy_MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AParkourCharacter::Legacy_Turn);
+	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AParkourCharacter::Legacy_LookUp);
+	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &AParkourCharacter::Legacy_JumpPressed);
+	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Released, this, &AParkourCharacter::Legacy_JumpReleased);
+	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AParkourCharacter::Legacy_CrouchPressed);
+	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Released, this, &AParkourCharacter::Legacy_CrouchReleased);
+	PlayerInputComponent->BindAction(TEXT("ToggleBuildMode"), IE_Pressed, this, &AParkourCharacter::Legacy_ToggleBuildMode);
+
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EnhancedInputComponent)
 	{
@@ -87,16 +97,6 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	{
 		EnhancedInputComponent->BindAction(ToggleBuildModeAction, ETriggerEvent::Started, this, &AParkourCharacter::Input_ToggleBuildModeStarted);
 	}
-
-	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AParkourCharacter::Legacy_MoveForward);
-	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AParkourCharacter::Legacy_MoveRight);
-	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AParkourCharacter::Legacy_Turn);
-	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AParkourCharacter::Legacy_LookUp);
-	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &AParkourCharacter::Legacy_JumpPressed);
-	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Released, this, &AParkourCharacter::Legacy_JumpReleased);
-	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AParkourCharacter::Legacy_CrouchPressed);
-	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Released, this, &AParkourCharacter::Legacy_CrouchReleased);
-	PlayerInputComponent->BindAction(TEXT("ToggleBuildMode"), IE_Pressed, this, &AParkourCharacter::Legacy_ToggleBuildMode);
 }
 
 UParkourMovementComponent* AParkourCharacter::GetParkourMovementComponent() const

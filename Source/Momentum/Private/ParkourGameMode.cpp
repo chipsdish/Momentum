@@ -9,6 +9,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "ParkourBoostPad.h"
 #include "ParkourBuildManager.h"
 #include "ParkourCharacter.h"
 #include "ParkourFinishVolume.h"
@@ -25,12 +26,15 @@ void AParkourGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (bSpawnDefaultGreyboxCourse)
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	const bool bIsMainMenu = CurrentLevelName == TEXT("MainMenu");
+
+	if (bSpawnDefaultGreyboxCourse && !bIsMainMenu && !HasPlacedGreyboxCourse())
 	{
 		SpawnDefaultGreyboxCourse();
 	}
 
-	if (bAutoStartRunTimer)
+	if (bAutoStartRunTimer && !bIsMainMenu)
 	{
 		StartRunTimer();
 	}
@@ -175,6 +179,13 @@ FTransform AParkourGameMode::ResolveRespawnTransform(AController* Controller)
 	return FTransform::Identity;
 }
 
+bool AParkourGameMode::HasPlacedGreyboxCourse() const
+{
+	TArray<AActor*> TaggedActors;
+	UGameplayStatics::GetAllActorsWithTag(this, PlacedCourseTag, TaggedActors);
+	return TaggedActors.Num() > 0;
+}
+
 void AParkourGameMode::SpawnDefaultGreyboxCourse()
 {
 	UWorld* World = GetWorld();
@@ -204,20 +215,37 @@ void AParkourGameMode::SpawnDefaultGreyboxCourse()
 	SpawnGreyboxBlock(TEXT("Acceleration Ramp"), FVector(4700.0f, 0.0f, 260.0f), FRotator(50.0f, 0.0f, 0.0f), FVector(1400.0f, 500.0f, 70.0f));
 	SpawnCourseLabel(TEXT("真实加速坡: 无 AddImpulse"), FVector(4700.0f, -440.0f, 540.0f));
 
-	SpawnGreyboxBlock(TEXT("Air Platform"), FVector(6100.0f, 0.0f, 420.0f), FRotator::ZeroRotator, FVector(500.0f, 500.0f, 70.0f));
-	SpawnCourseLabel(TEXT("空中平台"), FVector(6100.0f, -360.0f, 580.0f));
+	SpawnGreyboxBlock(TEXT("Curved Slide 1"), FVector(5900.0f, 0.0f, 380.0f), FRotator(43.0f, 0.0f, 0.0f), FVector(900.0f, 430.0f, 65.0f));
+	SpawnGreyboxBlock(TEXT("Curved Slide 2"), FVector(6600.0f, 170.0f, 470.0f), FRotator(43.0f, 20.0f, 0.0f), FVector(900.0f, 430.0f, 65.0f));
+	SpawnGreyboxBlock(TEXT("Curved Slide 3"), FVector(7250.0f, 520.0f, 560.0f), FRotator(43.0f, 40.0f, 0.0f), FVector(900.0f, 430.0f, 65.0f));
+	SpawnCourseLabel(TEXT("弯曲滑坡: 分段拼接"), FVector(6650.0f, -300.0f, 760.0f));
 
-	AParkourFinishVolume* FinishVolume = World->SpawnActor<AParkourFinishVolume>(AParkourFinishVolume::StaticClass(), FVector(6850.0f, 0.0f, 540.0f), FRotator::ZeroRotator);
+	SpawnGreyboxBlock(TEXT("Jump Ramp"), FVector(7900.0f, 820.0f, 580.0f), FRotator(28.0f, 40.0f, 0.0f), FVector(550.0f, 360.0f, 75.0f));
+	SpawnCourseLabel(TEXT("跳台斜坡: Bunny Hop / 空中转向"), FVector(7900.0f, 420.0f, 820.0f));
+
+	SpawnGreyboxBlock(TEXT("Air Platform"), FVector(8750.0f, 1350.0f, 750.0f), FRotator::ZeroRotator, FVector(620.0f, 520.0f, 70.0f));
+	SpawnCourseLabel(TEXT("空中平台"), FVector(8750.0f, 1000.0f, 920.0f));
+
+	AParkourBoostPad* BoostPad = World->SpawnActor<AParkourBoostPad>(AParkourBoostPad::StaticClass(), FVector(8350.0f, -780.0f, 120.0f), FRotator(0.0f, 0.0f, 0.0f));
+#if WITH_EDITOR
+	if (BoostPad)
+	{
+		BoostPad->SetActorLabel(TEXT("Boost Pad - Optional Trigger"));
+	}
+#endif
+	SpawnCourseLabel(TEXT("Boost Pad: 独立触发测试模块"), FVector(8350.0f, -1120.0f, 300.0f));
+
+	AParkourFinishVolume* FinishVolume = World->SpawnActor<AParkourFinishVolume>(AParkourFinishVolume::StaticClass(), FVector(9650.0f, 1350.0f, 890.0f), FRotator::ZeroRotator);
 	if (FinishVolume && FinishVolume->TriggerVolume)
 	{
 		FinishVolume->TriggerVolume->SetBoxExtent(FVector(160.0f, 240.0f, 240.0f));
 	}
-	SpawnCourseLabel(TEXT("Finish / 终点"), FVector(6850.0f, -320.0f, 780.0f));
+	SpawnCourseLabel(TEXT("Finish / 终点"), FVector(9650.0f, 1000.0f, 1130.0f));
 
-	AParkourRespawnVolume* RespawnVolume = World->SpawnActor<AParkourRespawnVolume>(AParkourRespawnVolume::StaticClass(), FVector(3400.0f, 0.0f, -900.0f), FRotator::ZeroRotator);
+	AParkourRespawnVolume* RespawnVolume = World->SpawnActor<AParkourRespawnVolume>(AParkourRespawnVolume::StaticClass(), FVector(4800.0f, 300.0f, -900.0f), FRotator::ZeroRotator);
 	if (RespawnVolume && RespawnVolume->TriggerVolume)
 	{
-		RespawnVolume->TriggerVolume->SetBoxExtent(FVector(8000.0f, 3000.0f, 160.0f));
+		RespawnVolume->TriggerVolume->SetBoxExtent(FVector(11500.0f, 4500.0f, 160.0f));
 	}
 
 	World->SpawnActor<AParkourBuildManager>(AParkourBuildManager::StaticClass(), FVector(0.0f, 900.0f, 120.0f), FRotator::ZeroRotator);
