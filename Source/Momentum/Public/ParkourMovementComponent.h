@@ -111,6 +111,7 @@ protected:
 
 	FVector ComputeWishDirection() const;
 	FVector ComputeSurfaceWishDirection(const FVector& SurfaceNormal) const;
+	FVector ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal) const;
 	FVector GetFloorNormal() const;
 	void ApplyHorizontalFriction(float DeltaTime, float Friction);
 	void Accelerate(const FVector& WishDirection, float WishSpeed, float AccelerationAmount, float DeltaTime);

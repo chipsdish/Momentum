@@ -248,11 +248,8 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 		Accelerate(WishDirection, MaxSpeed * InputAmount, SurfControlAcceleration, DeltaTime);
 	}
 
-	LastSurfSurfaceVelocity = FVector::VectorPlaneProject(Velocity, FloorNormal);
-	if (LastSurfSurfaceVelocity.Z < Velocity.Z)
-	{
-		LastSurfSurfaceVelocity.Z = Velocity.Z;
-	}
+	Velocity = ComputeSurfaceVelocity(Velocity, FloorNormal);
+	LastSurfSurfaceVelocity = Velocity;
 	bHasLastSurfSurfaceVelocity = true;
 }
 
@@ -334,6 +331,32 @@ FVector UParkourMovementComponent::ComputeSurfaceWishDirection(const FVector& Su
 {
 	const FVector WishDirection = ComputeWishDirection();
 	return FVector::VectorPlaneProject(WishDirection, SurfaceNormal).GetSafeNormal();
+}
+
+FVector UParkourMovementComponent::ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal) const
+{
+	const FVector SafeNormal = SurfaceNormal.GetSafeNormal();
+	if (SafeNormal.IsNearlyZero())
+	{
+		return CurrentVelocity;
+	}
+
+	FVector SurfaceVelocity(CurrentVelocity.X, CurrentVelocity.Y, 0.0f);
+	if (FMath::Abs(SafeNormal.Z) > KINDA_SMALL_NUMBER)
+	{
+		SurfaceVelocity.Z = -FVector::DotProduct(FVector(SurfaceVelocity.X, SurfaceVelocity.Y, 0.0f), SafeNormal) / SafeNormal.Z;
+	}
+	else
+	{
+		SurfaceVelocity = FVector::VectorPlaneProject(CurrentVelocity, SafeNormal);
+	}
+
+	if (CurrentVelocity.Z > SurfaceVelocity.Z)
+	{
+		SurfaceVelocity.Z = CurrentVelocity.Z;
+	}
+
+	return SurfaceVelocity;
 }
 
 FVector UParkourMovementComponent::GetFloorNormal() const
