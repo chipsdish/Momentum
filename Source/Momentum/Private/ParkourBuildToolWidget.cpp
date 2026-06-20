@@ -11,13 +11,13 @@
 #include "ParkourBuildPiece.h"
 #include "Styling/CoreStyle.h"
 
-void UParkourBuildToolWidget::NativeConstruct()
+TSharedRef<SWidget> UParkourBuildToolWidget::RebuildWidget()
 {
-	Super::NativeConstruct();
+	const TSharedRef<SWidget> FallbackWidget = Super::RebuildWidget();
 
 	if (!WidgetTree)
 	{
-		return;
+		return FallbackWidget;
 	}
 
 	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("BuildToolRoot"));
@@ -56,6 +56,8 @@ void UParkourBuildToolWidget::NativeConstruct()
 	AddButton(Panel, TEXT("保存布局 01"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::SaveDefaultLayout);
 	AddButton(Panel, TEXT("加载布局 01"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::LoadDefaultLayout);
 	AddButton(Panel, TEXT("重置测试块"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::ResetRuntimeLayout);
+
+	return Root->TakeWidget();
 }
 
 void UParkourBuildToolWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

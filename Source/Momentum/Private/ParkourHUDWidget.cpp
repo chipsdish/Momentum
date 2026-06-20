@@ -12,13 +12,13 @@
 #include "ParkourPlayerController.h"
 #include "Styling/CoreStyle.h"
 
-void UParkourHUDWidget::NativeConstruct()
+TSharedRef<SWidget> UParkourHUDWidget::RebuildWidget()
 {
-	Super::NativeConstruct();
+	const TSharedRef<SWidget> FallbackWidget = Super::RebuildWidget();
 
 	if (!WidgetTree)
 	{
-		return;
+		return FallbackWidget;
 	}
 
 	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("HUDRoot"));
@@ -79,6 +79,8 @@ void UParkourHUDWidget::NativeConstruct()
 	MainMenuButton->AddChild(MainMenuText);
 	FinishedPanel->AddChildToVerticalBox(MainMenuButton);
 	MainMenuButton->OnClicked.AddDynamic(this, &UParkourHUDWidget::HandleMainMenuClicked);
+
+	return Root->TakeWidget();
 }
 
 void UParkourHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

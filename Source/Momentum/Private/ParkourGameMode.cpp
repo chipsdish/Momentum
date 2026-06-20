@@ -3,11 +3,15 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerStart.h"
+#include "Engine/DirectionalLight.h"
+#include "Engine/SkyLight.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/TextRenderActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/BoxComponent.h"
+#include "Components/DirectionalLightComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "ParkourBoostPad.h"
 #include "ParkourBuildManager.h"
@@ -28,6 +32,8 @@ void AParkourGameMode::BeginPlay()
 
 	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
 	const bool bIsMainMenu = CurrentLevelName == TEXT("MainMenu");
+
+	EnsureBasicLighting();
 
 	if (bSpawnDefaultGreyboxCourse && !bIsMainMenu && !HasPlacedGreyboxCourse())
 	{
@@ -177,6 +183,47 @@ FTransform AParkourGameMode::ResolveRespawnTransform(AController* Controller)
 	}
 
 	return FTransform::Identity;
+}
+
+void AParkourGameMode::EnsureBasicLighting()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	if (!UGameplayStatics::GetActorOfClass(this, ADirectionalLight::StaticClass()))
+	{
+		ADirectionalLight* DirectionalLight = World->SpawnActor<ADirectionalLight>(ADirectionalLight::StaticClass(), FVector::ZeroVector, FRotator(-45.0f, -35.0f, 0.0f));
+		if (DirectionalLight && DirectionalLight->GetLightComponent())
+		{
+			DirectionalLight->GetLightComponent()->SetMobility(EComponentMobility::Movable);
+			DirectionalLight->GetLightComponent()->SetIntensity(6.0f);
+		}
+#if WITH_EDITOR
+		if (DirectionalLight)
+		{
+			DirectionalLight->SetActorLabel(TEXT("Runtime Safety Directional Light"));
+		}
+#endif
+	}
+
+	if (!UGameplayStatics::GetActorOfClass(this, ASkyLight::StaticClass()))
+	{
+		ASkyLight* SkyLight = World->SpawnActor<ASkyLight>(ASkyLight::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
+		if (SkyLight && SkyLight->GetLightComponent())
+		{
+			SkyLight->GetLightComponent()->SetMobility(EComponentMobility::Movable);
+			SkyLight->GetLightComponent()->SetIntensity(0.75f);
+		}
+#if WITH_EDITOR
+		if (SkyLight)
+		{
+			SkyLight->SetActorLabel(TEXT("Runtime Safety Sky Light"));
+		}
+#endif
+	}
 }
 
 bool AParkourGameMode::HasPlacedGreyboxCourse() const

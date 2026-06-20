@@ -12,13 +12,13 @@
 #include "ParkourPlayerController.h"
 #include "Styling/CoreStyle.h"
 
-void UParkourMainMenuWidget::NativeConstruct()
+TSharedRef<SWidget> UParkourMainMenuWidget::RebuildWidget()
 {
-	Super::NativeConstruct();
+	const TSharedRef<SWidget> FallbackWidget = Super::RebuildWidget();
 
 	if (!WidgetTree)
 	{
-		return;
+		return FallbackWidget;
 	}
 
 	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("Root"));
@@ -79,6 +79,8 @@ void UParkourMainMenuWidget::NativeConstruct()
 	QuitButton->OnHovered.AddDynamic(this, &UParkourMainMenuWidget::HandleButtonHovered);
 	TestLevelButton->OnUnhovered.AddDynamic(this, &UParkourMainMenuWidget::HandleButtonUnhovered);
 	QuitButton->OnUnhovered.AddDynamic(this, &UParkourMainMenuWidget::HandleButtonUnhovered);
+
+	return Root->TakeWidget();
 }
 
 void UParkourMainMenuWidget::HandleTestLevelClicked()

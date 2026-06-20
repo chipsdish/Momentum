@@ -54,6 +54,7 @@ public:
 
 protected:
 	FTransform ResolveRespawnTransform(AController* Controller);
+	void EnsureBasicLighting();
 	bool HasPlacedGreyboxCourse() const;
 	void SpawnDefaultGreyboxCourse();
 	AActor* SpawnGreyboxBlock(const FString& Name, const FVector& Location, const FRotator& Rotation, const FVector& Dimensions);

@@ -12,7 +12,7 @@ class MOMENTUM_API UParkourMainMenuWidget : public UUserWidget
 	GENERATED_BODY()
 
 protected:
-	virtual void NativeConstruct() override;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	UFUNCTION()
 	void HandleTestLevelClicked();

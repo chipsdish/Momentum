@@ -39,6 +39,32 @@ def spawn_cube(name: str, location: unreal.Vector, rotation: unreal.Rotator, sca
         mesh_component.set_static_mesh(cube_mesh)
 
 
+def spawn_lighting() -> None:
+    sun = unreal.EditorLevelLibrary.spawn_actor_from_class(
+        unreal.DirectionalLight,
+        unreal.Vector(0.0, 0.0, 600.0),
+        unreal.Rotator(-45.0, -35.0, 0.0),
+    )
+    if sun:
+        sun.set_actor_label("Sun Light / 基础光照")
+        sun.set_editor_property("tags", [course_tag()])
+        light_component = sun.get_component_by_class(unreal.DirectionalLightComponent)
+        if light_component:
+            light_component.set_editor_property("intensity", 6.0)
+
+    sky = unreal.EditorLevelLibrary.spawn_actor_from_class(
+        unreal.SkyLight,
+        unreal.Vector(0.0, 0.0, 300.0),
+        unreal.Rotator(0.0, 0.0, 0.0),
+    )
+    if sky:
+        sky.set_actor_label("Sky Light / 环境光")
+        sky.set_editor_property("tags", [course_tag()])
+        sky_component = sky.get_component_by_class(unreal.SkyLightComponent)
+        if sky_component:
+            sky_component.set_editor_property("intensity", 0.75)
+
+
 def spawn_course_cube(name: str, location, rotation, dimensions) -> None:
     spawn_cube(
         name,
@@ -86,7 +112,8 @@ def create_main_menu() -> None:
     spawn_label("Momentum\n主菜单", unreal.Vector(0.0, 0.0, 220.0), 120.0)
     spawn_label("Play 后显示中文主菜单\n测试关卡 / 退出游戏", unreal.Vector(0.0, 0.0, 40.0), 52.0)
     spawn_cube("MainMenu Floor", unreal.Vector(0.0, 0.0, -60.0), unreal.Rotator(0.0, 0.0, 0.0), unreal.Vector(12.0, 12.0, 0.4))
-    unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.PlayerStart, unreal.Vector(0.0, -420.0, 120.0), unreal.Rotator(0.0, 0.0, 0.0))
+    spawn_lighting()
+    unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.PlayerStart, unreal.Vector(0.0, -420.0, 120.0), unreal.Rotator(0.0, 90.0, 0.0))
     unreal.EditorLoadingAndSavingUtils.save_current_level()
 
 
@@ -95,6 +122,7 @@ def create_test_level() -> None:
         return
 
     spawn_label("Momentum TestLevel\n静态灰盒赛道，可在编辑器直接调整", unreal.Vector(0.0, -650.0, 300.0), 72.0)
+    spawn_lighting()
 
     unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.PlayerStart, unreal.Vector(0.0, 0.0, 180.0), unreal.Rotator(0.0, 0.0, 0.0))
 
