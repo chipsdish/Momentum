@@ -55,8 +55,8 @@ TSharedRef<SWidget> UParkourBuildToolWidget::RebuildWidget()
 	AddButton(Panel, TEXT("坡度 +5"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::IncreaseSelectedSlope);
 	AddButton(Panel, TEXT("复制选中"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::DuplicateSelected);
 	AddButton(Panel, TEXT("删除选中"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::DeleteSelected);
-	AddButton(Panel, TEXT("保存布局 01"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::SaveDefaultLayout);
-	AddButton(Panel, TEXT("加载布局 01"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::LoadDefaultLayout);
+	AddButton(Panel, TEXT("保存"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::SaveDefaultLayout);
+	AddButton(Panel, TEXT("加载"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::LoadDefaultLayout);
 	AddButton(Panel, TEXT("重置测试块"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::ResetRuntimeLayout);
 
 	return Root->TakeWidget();
