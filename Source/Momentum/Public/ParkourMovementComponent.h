@@ -106,6 +106,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
 	float SurfUphillSpeedLoss = 0.25f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
+	float MinSurfSurfaceNormalZ = 0.08f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
+	float MaxSurfVerticalSpeed = 1800.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Respawn")
 	float RespawnZThreshold = -2000.0f;
 
@@ -124,6 +130,7 @@ protected:
 	FVector ComputeWishDirection() const;
 	FVector ComputeSurfaceWishDirection(const FVector& SurfaceNormal) const;
 	FVector ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal, bool bPreserveExistingUpwardVelocity) const;
+	FVector ClampSurfaceVerticalSpeed(const FVector& CurrentVelocity) const;
 	FVector GetFloorNormal() const;
 	void ApplyHorizontalFriction(float DeltaTime, float Friction);
 	void Accelerate(const FVector& WishDirection, float WishSpeed, float AccelerationAmount, float DeltaTime);

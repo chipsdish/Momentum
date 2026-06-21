@@ -142,7 +142,7 @@ void UParkourMovementComponent::OnMovementModeChanged(EMovementMode PreviousMove
 	{
 		if (!bSkipNextSurfExitVelocityRestore)
 		{
-			Velocity = LastSurfSurfaceVelocity;
+			Velocity = ClampSurfaceVerticalSpeed(LastSurfSurfaceVelocity);
 		}
 
 		bHasLastSurfSurfaceVelocity = false;
@@ -259,6 +259,13 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 {
 	const FVector FloorNormal = GetFloorNormal();
+	if (FloorNormal.Z < MinSurfSurfaceNormalZ)
+	{
+		bHasLastSurfSurfaceVelocity = false;
+		SetMovementMode(MOVE_Falling);
+		return;
+	}
+
 	const FVector DownSlopeDirection = FVector::VectorPlaneProject(FVector::DownVector, FloorNormal).GetSafeNormal();
 	const bool bIsSliding = ParkourMovementState == EParkourMovementState::Sliding;
 
@@ -382,27 +389,32 @@ FVector UParkourMovementComponent::ComputeSurfaceWishDirection(const FVector& Su
 FVector UParkourMovementComponent::ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal, bool bPreserveExistingUpwardVelocity) const
 {
 	const FVector SafeNormal = SurfaceNormal.GetSafeNormal();
-	if (SafeNormal.IsNearlyZero())
+	if (SafeNormal.IsNearlyZero() || SafeNormal.Z < MinSurfSurfaceNormalZ)
 	{
-		return CurrentVelocity;
+		return ClampSurfaceVerticalSpeed(CurrentVelocity);
 	}
 
 	FVector SurfaceVelocity(CurrentVelocity.X, CurrentVelocity.Y, 0.0f);
-	if (FMath::Abs(SafeNormal.Z) > KINDA_SMALL_NUMBER)
-	{
-		SurfaceVelocity.Z = -FVector::DotProduct(FVector(SurfaceVelocity.X, SurfaceVelocity.Y, 0.0f), SafeNormal) / SafeNormal.Z;
-	}
-	else
-	{
-		SurfaceVelocity = FVector::VectorPlaneProject(CurrentVelocity, SafeNormal);
-	}
+	SurfaceVelocity.Z = -FVector::DotProduct(FVector(SurfaceVelocity.X, SurfaceVelocity.Y, 0.0f), SafeNormal) / SafeNormal.Z;
 
 	if (bPreserveExistingUpwardVelocity && CurrentVelocity.Z > SurfaceVelocity.Z)
 	{
 		SurfaceVelocity.Z = CurrentVelocity.Z;
 	}
 
-	return SurfaceVelocity;
+	return ClampSurfaceVerticalSpeed(SurfaceVelocity);
+}
+
+FVector UParkourMovementComponent::ClampSurfaceVerticalSpeed(const FVector& CurrentVelocity) const
+{
+	if (MaxSurfVerticalSpeed <= 0.0f)
+	{
+		return CurrentVelocity;
+	}
+
+	FVector ClampedVelocity = CurrentVelocity;
+	ClampedVelocity.Z = FMath::Clamp(ClampedVelocity.Z, -MaxSurfVerticalSpeed, MaxSurfVerticalSpeed);
+	return ClampedVelocity;
 }
 
 FVector UParkourMovementComponent::GetFloorNormal() const
