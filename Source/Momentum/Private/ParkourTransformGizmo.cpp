@@ -24,6 +24,8 @@ AParkourTransformGizmo::AParkourTransformGizmo()
 		Handle->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		Handle->SetCollisionResponseToAllChannels(ECR_Ignore);
 		Handle->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		Handle->SetDepthPriorityGroup(SDPG_Foreground);
+		Handle->TranslucencySortPriority = 1000;
 		if (CubeMesh.Succeeded())
 		{
 			Handle->SetStaticMesh(CubeMesh.Object);
@@ -191,7 +193,7 @@ bool AParkourTransformGizmo::UpdateDrag(const FVector& RayOrigin, const FVector&
 		NewLocation += AxisDirection * (CurrentAxisParameter - DragStartAxisParameter);
 	}
 
-	NewLocation = SnapLocation(NewLocation);
+	NewLocation = SnapLocationForDrag(NewLocation);
 	TargetActor->SetActorLocation(NewLocation);
 	SetActorLocation(NewLocation);
 	return true;
@@ -310,6 +312,37 @@ FVector AParkourTransformGizmo::SnapLocation(const FVector& Location) const
 		FMath::GridSnap(Location.Y, SnapSize),
 		FMath::GridSnap(Location.Z, SnapSize)
 	);
+}
+
+FVector AParkourTransformGizmo::SnapLocationForDrag(const FVector& Location) const
+{
+	if (SnapSize <= 0.0f)
+	{
+		return Location;
+	}
+
+	FVector SnappedLocation = DragStartTargetLocation;
+	switch (DragAxis)
+	{
+	case EParkourGizmoAxis::X:
+		SnappedLocation.X = FMath::GridSnap(Location.X, SnapSize);
+		break;
+	case EParkourGizmoAxis::Y:
+		SnappedLocation.Y = FMath::GridSnap(Location.Y, SnapSize);
+		break;
+	case EParkourGizmoAxis::Z:
+		SnappedLocation.Z = FMath::GridSnap(Location.Z, SnapSize);
+		break;
+	case EParkourGizmoAxis::XY:
+		SnappedLocation.X = FMath::GridSnap(Location.X, SnapSize);
+		SnappedLocation.Y = FMath::GridSnap(Location.Y, SnapSize);
+		break;
+	default:
+		SnappedLocation = SnapLocation(Location);
+		break;
+	}
+
+	return SnappedLocation;
 }
 
 void AParkourTransformGizmo::SetGizmoVisible(bool bVisible)

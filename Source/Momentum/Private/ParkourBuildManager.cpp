@@ -117,6 +117,14 @@ void AParkourBuildManager::SetSelectedSlopeAngle(float NewSlopeAngle)
 	}
 }
 
+void AParkourBuildManager::AdjustSelectedDimensions(const FVector& DeltaDimensions)
+{
+	if (SelectedPiece)
+	{
+		SelectedPiece->AdjustDimensions(DeltaDimensions);
+	}
+}
+
 void AParkourBuildManager::ClearRuntimePieces()
 {
 	ClearSelection();
@@ -192,9 +200,25 @@ bool AParkourBuildManager::LoadLayout(const FString& LayoutName)
 	}
 
 	ClearRuntimePieces();
+	bool bLoadedFinishGate = false;
+	FVector SuggestedFinishLocation = GetActorLocation() + FVector(1200.0f, 0.0f, 120.0f);
 	for (const FParkourBuildPieceData& PieceData : Layout->Pieces)
 	{
+		const FVector PieceLocation = PieceData.Transform.GetLocation();
+		if (PieceLocation.X >= SuggestedFinishLocation.X)
+		{
+			SuggestedFinishLocation = PieceLocation + FVector(800.0f, 0.0f, 180.0f);
+		}
+
+		bLoadedFinishGate = bLoadedFinishGate || PieceData.PieceType == EParkourBuildPieceType::FinishGate;
 		AddPieceFromData(PieceData);
+	}
+
+	if (!bLoadedFinishGate)
+	{
+		FParkourBuildPieceData FinishGateData = MakeDefaultPieceData(EParkourBuildPieceType::FinishGate);
+		FinishGateData.Transform.SetLocation(SuggestedFinishLocation);
+		AddPieceFromData(FinishGateData);
 	}
 
 	ClearSelection();
@@ -323,7 +347,8 @@ FParkourBuildPieceData AParkourBuildManager::MakeDefaultPieceData(EParkourBuildP
 		break;
 	case EParkourBuildPieceType::FinishGate:
 		PieceData.Transform.AddToTranslation(FVector(1200.0f, 0.0f, 120.0f));
-		PieceData.Dimensions = FVector(200.0f, 60.0f, 300.0f);
+		PieceData.Dimensions = FVector(320.0f, 480.0f, 480.0f);
+		PieceData.Label = TEXT("Finish Gate");
 		break;
 	case EParkourBuildPieceType::Sign:
 		PieceData.Dimensions = FVector(160.0f, 20.0f, 100.0f);

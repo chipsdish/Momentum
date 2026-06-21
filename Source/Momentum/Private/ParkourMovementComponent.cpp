@@ -237,15 +237,21 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 	const FVector CurrentDirection = InitialHorizontalVelocity / InitialHorizontalSpeed;
 	const float DirectionDot = FMath::Clamp(FVector::DotProduct(CurrentDirection, WishDirection), -1.0f, 1.0f);
 	const float AngleToWishDirection = FMath::Acos(DirectionDot);
-	if (AngleToWishDirection <= KINDA_SMALL_NUMBER)
+	FVector NewDirection = CurrentDirection;
+	if (AngleToWishDirection > KINDA_SMALL_NUMBER)
 	{
-		return;
+		const float MaxTurnAngle = FMath::DegreesToRadians(AirTurnRateDegrees * AirControlStrength * DirectionalScale * DeltaTime);
+		const float TurnAlpha = FMath::Clamp(MaxTurnAngle / AngleToWishDirection, 0.0f, 1.0f);
+		NewDirection = FMath::Lerp(CurrentDirection, WishDirection, TurnAlpha).GetSafeNormal();
 	}
 
-	const float MaxTurnAngle = FMath::DegreesToRadians(AirTurnRateDegrees * AirControlStrength * DirectionalScale * DeltaTime);
-	const float TurnAlpha = FMath::Clamp(MaxTurnAngle / AngleToWishDirection, 0.0f, 1.0f);
-	const FVector NewDirection = FMath::Lerp(CurrentDirection, WishDirection, TurnAlpha).GetSafeNormal();
-	const FVector NewHorizontalVelocity = NewDirection * InitialHorizontalSpeed;
+	float NewHorizontalSpeed = InitialHorizontalSpeed;
+	if (BackwardAmount > KINDA_SMALL_NUMBER && AirBrakeDeceleration > 0.0f)
+	{
+		NewHorizontalSpeed = FMath::Max(NewHorizontalSpeed - AirBrakeDeceleration * BackwardAmount * DeltaTime, 0.0f);
+	}
+
+	const FVector NewHorizontalVelocity = NewDirection * NewHorizontalSpeed;
 	Velocity.X = NewHorizontalVelocity.X;
 	Velocity.Y = NewHorizontalVelocity.Y;
 }

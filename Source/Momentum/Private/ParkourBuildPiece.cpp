@@ -4,6 +4,8 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "GameFramework/Pawn.h"
+#include "ParkourGameMode.h"
 #include "UObject/ConstructorHelpers.h"
 
 AParkourBuildPiece::AParkourBuildPiece()
@@ -18,6 +20,7 @@ AParkourBuildPiece::AParkourBuildPiece()
 	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	Mesh->SetCollisionResponseToAllChannels(ECR_Block);
 	Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	Mesh->SetGenerateOverlapEvents(true);
 
 	SelectionBounds = CreateDefaultSubobject<UBoxComponent>(TEXT("SelectionBounds"));
 	SelectionBounds->SetupAttachment(SceneRoot);
@@ -43,6 +46,16 @@ AParkourBuildPiece::AParkourBuildPiece()
 	}
 
 	ApplyPieceVisuals();
+}
+
+void AParkourBuildPiece::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (Mesh)
+	{
+		Mesh->OnComponentBeginOverlap.AddUniqueDynamic(this, &AParkourBuildPiece::OnBuildPieceOverlap);
+	}
 }
 
 void AParkourBuildPiece::ConfigureFromData(const FParkourBuildPieceData& NewPieceData)
@@ -129,6 +142,11 @@ void AParkourBuildPiece::SetDimensions(const FVector& NewDimensions)
 	ApplyPieceVisuals();
 }
 
+void AParkourBuildPiece::AdjustDimensions(const FVector& DeltaDimensions)
+{
+	SetDimensions(PieceData.Dimensions + DeltaDimensions);
+}
+
 void AParkourBuildPiece::SetLabelText(const FString& NewLabel)
 {
 	PieceData.Label = NewLabel;
@@ -212,6 +230,22 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 	{
 		const FVector SafeDimensions = PieceData.Dimensions.ComponentMax(FVector(10.0f));
 		Mesh->SetRelativeScale3D(SafeDimensions / 100.0f);
+
+		if (PieceData.PieceType == EParkourBuildPieceType::FinishGate)
+		{
+			Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+			Mesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+			Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+			Mesh->SetGenerateOverlapEvents(true);
+		}
+		else
+		{
+			Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			Mesh->SetCollisionResponseToAllChannels(ECR_Block);
+			Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+			Mesh->SetGenerateOverlapEvents(false);
+		}
 	}
 
 	if (SelectionBounds)
@@ -254,4 +288,23 @@ float AParkourBuildPiece::GetInwardBankRoll(float SlopeAngle) const
 {
 	const float SideSign = GetActorLocation().Y >= 0.0f ? -1.0f : 1.0f;
 	return FMath::Abs(SlopeAngle) * SideSign;
+}
+
+void AParkourBuildPiece::OnBuildPieceOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (PieceData.PieceType != EParkourBuildPieceType::FinishGate)
+	{
+		return;
+	}
+
+	APawn* Pawn = Cast<APawn>(OtherActor);
+	if (!Pawn || !GetWorld())
+	{
+		return;
+	}
+
+	if (AParkourGameMode* ParkourGameMode = GetWorld()->GetAuthGameMode<AParkourGameMode>())
+	{
+		ParkourGameMode->FinishRun(Pawn);
+	}
 }

@@ -6,6 +6,7 @@
 #include "ParkourBuildPiece.generated.h"
 
 class UBoxComponent;
+class UPrimitiveComponent;
 class UStaticMeshComponent;
 class UTextRenderComponent;
 
@@ -16,6 +17,8 @@ class MOMENTUM_API AParkourBuildPiece : public AActor
 
 public:
 	AParkourBuildPiece();
+
+	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	void ConfigureFromData(const FParkourBuildPieceData& NewPieceData);
@@ -31,6 +34,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	void SetDimensions(const FVector& NewDimensions);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void AdjustDimensions(const FVector& DeltaDimensions);
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	void SetLabelText(const FString& NewLabel);
@@ -59,6 +65,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
 	EParkourBuildPieceType GetPieceType() const { return PieceData.PieceType; }
 
+	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
+	FVector GetDimensions() const { return PieceData.Dimensions; }
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
 	TObjectPtr<USceneComponent> SceneRoot;
 
@@ -78,4 +87,7 @@ protected:
 	void ApplyPieceVisuals();
 	void ApplySlopeRotation();
 	float GetInwardBankRoll(float SlopeAngle) const;
+
+	UFUNCTION()
+	void OnBuildPieceOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 };

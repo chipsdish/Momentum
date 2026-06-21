@@ -13,7 +13,6 @@
 #include "ParkourBuildManager.h"
 #include "ParkourBuildPiece.h"
 #include "ParkourCharacter.h"
-#include "ParkourFinishVolume.h"
 #include "ParkourPlayerController.h"
 #include "ParkourRespawnVolume.h"
 #include "ParkourWorldLabel.h"
@@ -287,11 +286,7 @@ void AParkourGameMode::SpawnDefaultGreyboxCourse()
 #endif
 	SpawnCourseLabel(TEXT("Boost Pad: 独立触发测试模块"), FVector(7400.0f, -1540.0f, 320.0f));
 
-	AParkourFinishVolume* FinishVolume = World->SpawnActor<AParkourFinishVolume>(AParkourFinishVolume::StaticClass(), FVector(17000.0f, 560.0f, 940.0f), FRotator::ZeroRotator);
-	if (FinishVolume && FinishVolume->TriggerVolume)
-	{
-		FinishVolume->TriggerVolume->SetBoxExtent(FVector(160.0f, 240.0f, 240.0f));
-	}
+	SpawnGreyboxBlock(TEXT("Finish Gate"), FVector(17000.0f, 560.0f, 940.0f), FRotator::ZeroRotator, FVector(320.0f, 480.0f, 480.0f), EParkourBuildPieceType::FinishGate);
 	SpawnCourseLabel(TEXT("Finish / 终点"), FVector(17000.0f, 1060.0f, 1180.0f));
 
 	AParkourRespawnVolume* RespawnVolume = World->SpawnActor<AParkourRespawnVolume>(AParkourRespawnVolume::StaticClass(), FVector(8500.0f, 0.0f, -900.0f), FRotator::ZeroRotator);

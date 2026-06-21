@@ -75,6 +75,7 @@ protected:
 	bool ComputeAxisDragParameter(const FVector& RayOrigin, const FVector& RayDirection, float& OutParameter) const;
 	bool ComputeRaySegmentDistance(const FVector& RayOrigin, const FVector& RayDirection, const FVector& SegmentStart, const FVector& SegmentEnd, float& OutDistance, float& OutRayParameter) const;
 	FVector SnapLocation(const FVector& Location) const;
+	FVector SnapLocationForDrag(const FVector& Location) const;
 	void SetGizmoVisible(bool bVisible);
 
 	UPROPERTY(Transient)

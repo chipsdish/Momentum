@@ -43,6 +43,9 @@ public:
 	void SetSelectedSlopeAngle(float NewSlopeAngle);
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void AdjustSelectedDimensions(const FVector& DeltaDimensions);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	void ClearRuntimePieces();
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")

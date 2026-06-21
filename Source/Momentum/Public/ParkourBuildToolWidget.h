@@ -35,6 +35,9 @@ protected:
 	void AddWallPlatform();
 
 	UFUNCTION()
+	void AddFinishGate();
+
+	UFUNCTION()
 	void DuplicateSelected();
 
 	UFUNCTION()
@@ -42,6 +45,24 @@ protected:
 
 	UFUNCTION()
 	void IncreaseSelectedSlope();
+
+	UFUNCTION()
+	void IncreaseSelectedLength();
+
+	UFUNCTION()
+	void DecreaseSelectedLength();
+
+	UFUNCTION()
+	void IncreaseSelectedWidth();
+
+	UFUNCTION()
+	void DecreaseSelectedWidth();
+
+	UFUNCTION()
+	void IncreaseSelectedHeight();
+
+	UFUNCTION()
+	void DecreaseSelectedHeight();
 
 	UFUNCTION()
 	void DeleteSelected();
