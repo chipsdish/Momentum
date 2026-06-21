@@ -54,6 +54,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	bool DeleteLayout(const FString& LayoutName);
 
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	bool TryAutoLoadSavedLayout();
+
 	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
 	TArray<FString> GetSavedLayoutNames() const;
 
@@ -71,6 +74,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
 	int32 SaveUserIndex = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
+	bool bAutoLoadSavedLayout = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
+	FString AutoLoadLayoutName = TEXT("布局 01");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
 	float DuplicateOffset = 150.0f;

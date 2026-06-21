@@ -15,6 +15,7 @@ void AParkourBuildManager::BeginPlay()
 {
 	Super::BeginPlay();
 	RegisterExistingBuildPieces();
+	TryAutoLoadSavedLayout();
 }
 
 AParkourBuildPiece* AParkourBuildManager::AddDefaultPiece(EParkourBuildPieceType PieceType)
@@ -206,6 +207,16 @@ bool AParkourBuildManager::DeleteLayout(const FString& LayoutName)
 	});
 
 	return RemovedCount > 0 && UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlotName, SaveUserIndex);
+}
+
+bool AParkourBuildManager::TryAutoLoadSavedLayout()
+{
+	if (!bAutoLoadSavedLayout || AutoLoadLayoutName.IsEmpty())
+	{
+		return false;
+	}
+
+	return LoadLayout(AutoLoadLayoutName);
 }
 
 TArray<FString> AParkourBuildManager::GetSavedLayoutNames() const

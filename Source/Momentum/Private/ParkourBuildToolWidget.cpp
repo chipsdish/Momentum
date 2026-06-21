@@ -160,7 +160,7 @@ void UParkourBuildToolWidget::SaveDefaultLayout()
 {
 	if (AParkourBuildManager* BuildManager = FindBuildManager())
 	{
-		BuildManager->SaveLayout(TEXT("布局 01"));
+		BuildManager->SaveLayout(BuildManager->AutoLoadLayoutName);
 	}
 }
 
@@ -168,7 +168,7 @@ void UParkourBuildToolWidget::LoadDefaultLayout()
 {
 	if (AParkourBuildManager* BuildManager = FindBuildManager())
 	{
-		BuildManager->LoadLayout(TEXT("布局 01"));
+		BuildManager->LoadLayout(BuildManager->AutoLoadLayoutName);
 	}
 }
 
