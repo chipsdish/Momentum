@@ -56,16 +56,19 @@ public:
 	float AirWishSpeed = 1600.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
+	float AirTurnRateDegrees = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
 	float AirControlStrength = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
 	float AirForwardControlScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
-	float AirSideControlScale = 0.35f;
+	float AirSideControlScale = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
-	float AirBackwardControlScale = 0.18f;
+	float AirBackwardControlScale = 0.05f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Jump")
 	float JumpVelocity = 520.0f;
@@ -111,7 +114,7 @@ protected:
 
 	FVector ComputeWishDirection() const;
 	FVector ComputeSurfaceWishDirection(const FVector& SurfaceNormal) const;
-	FVector ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal) const;
+	FVector ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal, bool bPreserveExistingUpwardVelocity) const;
 	FVector GetFloorNormal() const;
 	void ApplyHorizontalFriction(float DeltaTime, float Friction);
 	void Accelerate(const FVector& WishDirection, float WishSpeed, float AccelerationAmount, float DeltaTime);
@@ -128,6 +131,7 @@ protected:
 
 	FVector LastSurfSurfaceVelocity = FVector::ZeroVector;
 	bool bHasLastSurfSurfaceVelocity = false;
+	bool bSkipNextSurfExitVelocityRestore = false;
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	float LastJumpPressedTime = -10000.0f;

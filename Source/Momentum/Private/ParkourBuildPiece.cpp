@@ -1,6 +1,7 @@
 #include "ParkourBuildPiece.h"
 
 #include "Components/BoxComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -71,7 +72,8 @@ void AParkourBuildPiece::SetSelected(bool bSelected)
 {
 	if (Mesh)
 	{
-		Mesh->SetRenderCustomDepth(bSelected);
+		Mesh->SetRenderCustomDepth(false);
+		Mesh->SetCustomDepthStencilValue(0);
 		Mesh->MarkRenderStateDirty();
 	}
 
@@ -85,11 +87,24 @@ void AParkourBuildPiece::SetBuildModeVisuals(bool bBuildModeActive)
 {
 	SetSelected(false);
 
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+	GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+	for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+	{
+		if (PrimitiveComponent)
+		{
+			PrimitiveComponent->SetRenderCustomDepth(false);
+			PrimitiveComponent->SetCustomDepthStencilValue(0);
+			PrimitiveComponent->MarkRenderStateDirty();
+		}
+	}
+
 	if (Mesh)
 	{
 		Mesh->SetHiddenInGame(false);
 		Mesh->SetVisibility(true, true);
 		Mesh->SetRenderCustomDepth(false);
+		Mesh->SetCustomDepthStencilValue(0);
 		Mesh->MarkRenderStateDirty();
 	}
 

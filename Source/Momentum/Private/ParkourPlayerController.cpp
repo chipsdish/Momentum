@@ -187,6 +187,7 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 		}
 		ClearAllBuildSelectionVisuals();
 		SetAllBuildPieceVisualsForBuildMode(false);
+		ResetBuildViewArtifacts();
 
 		if (GameplayPawn)
 		{
@@ -263,6 +264,7 @@ void AParkourPlayerController::SetGameplayInputMode()
 	bShowMouseCursor = false;
 	bEnableClickEvents = false;
 	bEnableMouseOverEvents = false;
+	ResetBuildViewArtifacts();
 
 	FInputModeGameOnly InputMode;
 	SetInputMode(InputMode);
@@ -439,6 +441,16 @@ void AParkourPlayerController::SetAllBuildPieceVisualsForBuildMode(bool bBuildMo
 	{
 		It->SetBuildModeVisuals(bBuildModeActive);
 	}
+}
+
+void AParkourPlayerController::ResetBuildViewArtifacts()
+{
+	ConsoleCommand(TEXT("viewmode lit"), false);
+	ConsoleCommand(TEXT("showflag.Wireframe 0"), false);
+	ConsoleCommand(TEXT("showflag.Collision 0"), false);
+	ConsoleCommand(TEXT("showflag.Bounds 0"), false);
+	ConsoleCommand(TEXT("showflag.Grid 0"), false);
+	ConsoleCommand(TEXT("showflag.SelectionOutline 0"), false);
 }
 
 void AParkourPlayerController::SyncGizmoToSelection()

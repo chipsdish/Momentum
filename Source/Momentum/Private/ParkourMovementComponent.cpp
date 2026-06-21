@@ -140,8 +140,13 @@ void UParkourMovementComponent::OnMovementModeChanged(EMovementMode PreviousMove
 
 	if (PreviousMovementMode == MOVE_Walking && MovementMode == MOVE_Falling && bWasSurfingOrSliding && bHasLastSurfSurfaceVelocity)
 	{
-		Velocity = LastSurfSurfaceVelocity;
+		if (!bSkipNextSurfExitVelocityRestore)
+		{
+			Velocity = LastSurfSurfaceVelocity;
+		}
+
 		bHasLastSurfSurfaceVelocity = false;
+		bSkipNextSurfExitVelocityRestore = false;
 	}
 
 	if (MovementMode == MOVE_Walking)
@@ -218,23 +223,31 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 	}
 
 	const FVector WishDirection = ComputeWishDirection();
+	if (WishDirection.IsNearlyZero())
+	{
+		return;
+	}
+
 	const float ForwardAmount = FMath::Max(MoveInput.Y, 0.0f);
 	const float SideAmount = FMath::Abs(MoveInput.X);
 	const float BackwardAmount = FMath::Max(-MoveInput.Y, 0.0f);
 	const float DirectionWeight = FMath::Max(ForwardAmount + SideAmount + BackwardAmount, KINDA_SMALL_NUMBER);
 	const float DirectionalScale = (ForwardAmount * AirForwardControlScale + SideAmount * AirSideControlScale + BackwardAmount * AirBackwardControlScale) / DirectionWeight;
 
-	const float WishSpeed = FMath::Max(MaxSpeed, AirWishSpeed) * InputAmount;
-	Accelerate(WishDirection, WishSpeed, AirAcceleration * AirControlStrength * DirectionalScale, DeltaTime);
-
-	FVector NewHorizontalVelocity(Velocity.X, Velocity.Y, 0.0f);
-	const float NewHorizontalSpeed = NewHorizontalVelocity.Size();
-	if (NewHorizontalSpeed > InitialHorizontalSpeed)
+	const FVector CurrentDirection = InitialHorizontalVelocity / InitialHorizontalSpeed;
+	const float DirectionDot = FMath::Clamp(FVector::DotProduct(CurrentDirection, WishDirection), -1.0f, 1.0f);
+	const float AngleToWishDirection = FMath::Acos(DirectionDot);
+	if (AngleToWishDirection <= KINDA_SMALL_NUMBER)
 	{
-		NewHorizontalVelocity *= InitialHorizontalSpeed / NewHorizontalSpeed;
-		Velocity.X = NewHorizontalVelocity.X;
-		Velocity.Y = NewHorizontalVelocity.Y;
+		return;
 	}
+
+	const float MaxTurnAngle = FMath::DegreesToRadians(AirTurnRateDegrees * AirControlStrength * DirectionalScale * DeltaTime);
+	const float TurnAlpha = FMath::Clamp(MaxTurnAngle / AngleToWishDirection, 0.0f, 1.0f);
+	const FVector NewDirection = FMath::Lerp(CurrentDirection, WishDirection, TurnAlpha).GetSafeNormal();
+	const FVector NewHorizontalVelocity = NewDirection * InitialHorizontalSpeed;
+	Velocity.X = NewHorizontalVelocity.X;
+	Velocity.Y = NewHorizontalVelocity.Y;
 }
 
 void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
@@ -264,7 +277,7 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 		Accelerate(WishDirection, MaxSpeed * InputAmount, SurfControlAcceleration, DeltaTime);
 	}
 
-	Velocity = ComputeSurfaceVelocity(Velocity, FloorNormal);
+	Velocity = ComputeSurfaceVelocity(Velocity, FloorNormal, false);
 	LastSurfSurfaceVelocity = Velocity;
 	bHasLastSurfSurfaceVelocity = true;
 }
@@ -293,7 +306,13 @@ void UParkourMovementComponent::HandleBunnyHop(float DeltaTime)
 
 	JumpZVelocity = JumpVelocity;
 	bJumpRequestConsumed = true;
-	DoJump(false, DeltaTime);
+
+	const bool bWasSurfingOrSliding = ParkourMovementState == EParkourMovementState::Surfing || ParkourMovementState == EParkourMovementState::Sliding;
+	bSkipNextSurfExitVelocityRestore = bWasSurfingOrSliding;
+	if (!DoJump(false, DeltaTime))
+	{
+		bSkipNextSurfExitVelocityRestore = false;
+	}
 }
 
 void UParkourMovementComponent::ClampVelocity()
@@ -349,7 +368,7 @@ FVector UParkourMovementComponent::ComputeSurfaceWishDirection(const FVector& Su
 	return FVector::VectorPlaneProject(WishDirection, SurfaceNormal).GetSafeNormal();
 }
 
-FVector UParkourMovementComponent::ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal) const
+FVector UParkourMovementComponent::ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal, bool bPreserveExistingUpwardVelocity) const
 {
 	const FVector SafeNormal = SurfaceNormal.GetSafeNormal();
 	if (SafeNormal.IsNearlyZero())
@@ -367,7 +386,7 @@ FVector UParkourMovementComponent::ComputeSurfaceVelocity(const FVector& Current
 		SurfaceVelocity = FVector::VectorPlaneProject(CurrentVelocity, SafeNormal);
 	}
 
-	if (CurrentVelocity.Z > SurfaceVelocity.Z)
+	if (bPreserveExistingUpwardVelocity && CurrentVelocity.Z > SurfaceVelocity.Z)
 	{
 		SurfaceVelocity.Z = CurrentVelocity.Z;
 	}
