@@ -97,6 +97,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
 	float SurfControlAcceleration = 2.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
+	float SurfUphillControlScale = 0.65f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
+	float SurfUphillSpeedLoss = 0.25f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Respawn")
 	float RespawnZThreshold = -2000.0f;
 

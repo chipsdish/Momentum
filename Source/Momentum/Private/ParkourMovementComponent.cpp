@@ -269,12 +269,17 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 	{
 		FVector WishDirection = ComputeSurfaceWishDirection(FloorNormal);
 		const float UphillAmount = FVector::DotProduct(WishDirection, -DownSlopeDirection);
+		float ControlAcceleration = SurfControlAcceleration;
 		if (UphillAmount > 0.0f)
 		{
-			WishDirection = (WishDirection + DownSlopeDirection * UphillAmount).GetSafeNormal();
+			ControlAcceleration *= FMath::Lerp(1.0f, SurfUphillControlScale, UphillAmount);
 		}
 
-		Accelerate(WishDirection, MaxSpeed * InputAmount, SurfControlAcceleration, DeltaTime);
+		Accelerate(WishDirection, MaxSpeed * InputAmount, ControlAcceleration, DeltaTime);
+		if (UphillAmount > 0.0f && SurfUphillSpeedLoss > 0.0f)
+		{
+			Velocity *= FMath::Max(1.0f - SurfUphillSpeedLoss * UphillAmount * DeltaTime, 0.0f);
+		}
 	}
 
 	Velocity = ComputeSurfaceVelocity(Velocity, FloorNormal, false);
