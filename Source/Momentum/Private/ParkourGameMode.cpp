@@ -8,8 +8,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/BoxComponent.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/SkyAtmosphereComponent.h"
 #include "Components/SkyLightComponent.h"
-#include "ParkourBoostPad.h"
 #include "ParkourBuildManager.h"
 #include "ParkourBuildPiece.h"
 #include "ParkourCharacter.h"
@@ -197,6 +197,11 @@ void AParkourGameMode::EnsureBasicLighting()
 		{
 			DirectionalLight->GetLightComponent()->SetMobility(EComponentMobility::Movable);
 			DirectionalLight->GetLightComponent()->SetIntensity(6.0f);
+			if (UDirectionalLightComponent* DirectionalLightComponent = Cast<UDirectionalLightComponent>(DirectionalLight->GetLightComponent()))
+			{
+				DirectionalLightComponent->SetAtmosphereSunLight(true);
+				DirectionalLightComponent->SetAtmosphereSunLightIndex(0);
+			}
 		}
 #if WITH_EDITOR
 		if (DirectionalLight)
@@ -212,12 +217,23 @@ void AParkourGameMode::EnsureBasicLighting()
 		if (SkyLight && SkyLight->GetLightComponent())
 		{
 			SkyLight->GetLightComponent()->SetMobility(EComponentMobility::Movable);
-			SkyLight->GetLightComponent()->SetIntensity(0.75f);
+			SkyLight->GetLightComponent()->SetIntensity(1.6f);
 		}
 #if WITH_EDITOR
 		if (SkyLight)
 		{
 			SkyLight->SetActorLabel(TEXT("Runtime Safety Sky Light"));
+		}
+#endif
+	}
+
+	if (!UGameplayStatics::GetActorOfClass(this, ASkyAtmosphere::StaticClass()))
+	{
+		ASkyAtmosphere* SkyAtmosphere = World->SpawnActor<ASkyAtmosphere>(ASkyAtmosphere::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
+#if WITH_EDITOR
+		if (SkyAtmosphere)
+		{
+			SkyAtmosphere->SetActorLabel(TEXT("Runtime Safety Sky Atmosphere"));
 		}
 #endif
 	}
@@ -277,13 +293,7 @@ void AParkourGameMode::SpawnDefaultGreyboxCourse()
 	SpawnGreyboxBlock(TEXT("Air Platform"), FVector(15600.0f, 560.0f, 800.0f), FRotator::ZeroRotator, FVector(720.0f, 560.0f, 70.0f));
 	SpawnCourseLabel(TEXT("空中平台"), FVector(15600.0f, 1060.0f, 980.0f));
 
-	AParkourBoostPad* BoostPad = World->SpawnActor<AParkourBoostPad>(AParkourBoostPad::StaticClass(), FVector(7400.0f, -1120.0f, 120.0f), FRotator(0.0f, 0.0f, 0.0f));
-#if WITH_EDITOR
-	if (BoostPad)
-	{
-		BoostPad->SetActorLabel(TEXT("Boost Pad - Optional Trigger"));
-	}
-#endif
+	SpawnGreyboxBlock(TEXT("Boost Pad - Optional Trigger"), FVector(7400.0f, -1120.0f, 120.0f), FRotator::ZeroRotator, FVector(260.0f, 180.0f, 24.0f), EParkourBuildPieceType::BoostPad);
 	SpawnCourseLabel(TEXT("Boost Pad: 独立触发测试模块"), FVector(7400.0f, -1540.0f, 320.0f));
 
 	SpawnGreyboxBlock(TEXT("Finish Gate"), FVector(17000.0f, 560.0f, 940.0f), FRotator::ZeroRotator, FVector(320.0f, 480.0f, 480.0f), EParkourBuildPieceType::FinishGate);
@@ -323,6 +333,11 @@ AActor* AParkourGameMode::SpawnGreyboxBlock(const FString& Name, const FVector& 
 	PieceData.SlopeAngle = FMath::Max(0.0f, SlopeAngle);
 	PieceData.bUseInwardBank = bUseInwardBank;
 	PieceData.Label = Name;
+	if (PieceType == EParkourBuildPieceType::BoostPad)
+	{
+		PieceData.bBoostPadEnabled = true;
+		PieceData.BoostStrength = 1400.0f;
+	}
 	Block->ConfigureFromData(PieceData);
 	if (SlopeAngle > KINDA_SMALL_NUMBER)
 	{

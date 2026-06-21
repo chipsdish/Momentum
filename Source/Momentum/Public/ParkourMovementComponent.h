@@ -46,6 +46,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Speed")
 	float MaxTestSpeed = 4500.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Speed")
+	float MaxFallSpeed = 1500.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
 	float GroundAcceleration = 12.0f;
 
@@ -78,6 +81,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Jump")
 	float BunnyHopBufferTime = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Jump")
+	float SurfJumpGraceTime = 0.18f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
 	float ParkourWalkableSlopeAngle = 35.0f;
@@ -135,6 +141,8 @@ protected:
 	void ApplyHorizontalFriction(float DeltaTime, float Friction);
 	void Accelerate(const FVector& WishDirection, float WishSpeed, float AccelerationAmount, float DeltaTime);
 	bool IsJumpBuffered() const;
+	bool IsSurfJumpGraceActive() const;
+	bool TryConsumeSurfJump();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Debug")
 	EParkourMovementState ParkourMovementState = EParkourMovementState::Airborne;
@@ -146,6 +154,7 @@ protected:
 	FVector LastFloorNormal = FVector::UpVector;
 
 	FVector LastSurfSurfaceVelocity = FVector::ZeroVector;
+	float LastSurfContactTime = -10000.0f;
 	bool bHasLastSurfSurfaceVelocity = false;
 	bool bSkipNextSurfExitVelocityRestore = false;
 

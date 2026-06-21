@@ -77,6 +77,7 @@ protected:
 	FVector SnapLocation(const FVector& Location) const;
 	FVector SnapLocationForDrag(const FVector& Location) const;
 	void SetGizmoVisible(bool bVisible);
+	void SetHandleColor(UStaticMeshComponent* Handle, const FLinearColor& Color);
 
 	UPROPERTY(Transient)
 	TObjectPtr<AActor> TargetActor;

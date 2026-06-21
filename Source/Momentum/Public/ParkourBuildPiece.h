@@ -6,6 +6,7 @@
 #include "ParkourBuildPiece.generated.h"
 
 class UBoxComponent;
+class APawn;
 class UPrimitiveComponent;
 class UStaticMeshComponent;
 class UTextRenderComponent;
@@ -78,6 +79,9 @@ public:
 	TObjectPtr<UBoxComponent> SelectionBounds;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
+	TObjectPtr<UBoxComponent> TriggerVolume;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
 	TObjectPtr<UTextRenderComponent> LabelText;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
@@ -87,7 +91,15 @@ protected:
 	void ApplyPieceVisuals();
 	void ApplySlopeRotation();
 	float GetInwardBankRoll(float SlopeAngle) const;
+	void ApplyBoostPad(APawn* Pawn);
+	bool CanBoostActor(AActor* Actor) const;
+	void RecordBoostActor(AActor* Actor);
 
 	UFUNCTION()
 	void OnBuildPieceOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
+	float BoostPadReuseCooldown = 0.25f;
+
+	TMap<TWeakObjectPtr<AActor>, float> LastBoostTimes;
 };

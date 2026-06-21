@@ -4,6 +4,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
 #include "ParkourGameMode.h"
 #include "UObject/ConstructorHelpers.h"
@@ -30,6 +31,14 @@ AParkourBuildPiece::AParkourBuildPiece()
 	SelectionBounds->SetHiddenInGame(true);
 	SelectionBounds->SetVisibility(false);
 
+	TriggerVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("TriggerVolume"));
+	TriggerVolume->SetupAttachment(SceneRoot);
+	TriggerVolume->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	TriggerVolume->SetCollisionResponseToAllChannels(ECR_Ignore);
+	TriggerVolume->SetGenerateOverlapEvents(false);
+	TriggerVolume->SetHiddenInGame(true);
+	TriggerVolume->SetVisibility(false);
+
 	LabelText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("LabelText"));
 	LabelText->SetupAttachment(SceneRoot);
 	LabelText->SetHorizontalAlignment(EHTA_Center);
@@ -52,9 +61,9 @@ void AParkourBuildPiece::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (Mesh)
+	if (TriggerVolume)
 	{
-		Mesh->OnComponentBeginOverlap.AddUniqueDynamic(this, &AParkourBuildPiece::OnBuildPieceOverlap);
+		TriggerVolume->OnComponentBeginOverlap.AddUniqueDynamic(this, &AParkourBuildPiece::OnBuildPieceOverlap);
 	}
 }
 
@@ -64,6 +73,15 @@ void AParkourBuildPiece::ConfigureFromData(const FParkourBuildPieceData& NewPiec
 	if (!PieceData.PieceId.IsValid())
 	{
 		PieceData.PieceId = FGuid::NewGuid();
+	}
+
+	if (PieceData.PieceType == EParkourBuildPieceType::BoostPad)
+	{
+		PieceData.bBoostPadEnabled = true;
+		if (PieceData.BoostStrength <= 0.0f)
+		{
+			PieceData.BoostStrength = 1400.0f;
+		}
 	}
 
 	SetActorTransform(PieceData.Transform);
@@ -226,18 +244,18 @@ void AParkourBuildPiece::SetUseInwardBank(bool bNewUseInwardBank)
 
 void AParkourBuildPiece::ApplyPieceVisuals()
 {
+	const FVector SafeDimensions = PieceData.Dimensions.ComponentMax(FVector(10.0f));
+
 	if (Mesh)
 	{
-		const FVector SafeDimensions = PieceData.Dimensions.ComponentMax(FVector(10.0f));
 		Mesh->SetRelativeScale3D(SafeDimensions / 100.0f);
 
 		if (PieceData.PieceType == EParkourBuildPieceType::FinishGate)
 		{
 			Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 			Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
-			Mesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 			Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-			Mesh->SetGenerateOverlapEvents(true);
+			Mesh->SetGenerateOverlapEvents(false);
 		}
 		else
 		{
@@ -248,9 +266,36 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 		}
 	}
 
+	if (TriggerVolume)
+	{
+		TriggerVolume->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		TriggerVolume->SetCollisionResponseToAllChannels(ECR_Ignore);
+		TriggerVolume->SetGenerateOverlapEvents(false);
+		TriggerVolume->SetHiddenInGame(true);
+		TriggerVolume->SetVisibility(false);
+		TriggerVolume->SetRelativeLocation(FVector::ZeroVector);
+		TriggerVolume->SetBoxExtent(SafeDimensions * 0.5f);
+
+		if (PieceData.PieceType == EParkourBuildPieceType::FinishGate)
+		{
+			TriggerVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			TriggerVolume->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+			TriggerVolume->SetGenerateOverlapEvents(true);
+		}
+		else if (PieceData.PieceType == EParkourBuildPieceType::BoostPad && PieceData.bBoostPadEnabled)
+		{
+			const FVector TriggerExtent(SafeDimensions.X * 0.5f, SafeDimensions.Y * 0.5f, FMath::Max(80.0f, SafeDimensions.Z));
+			TriggerVolume->SetBoxExtent(TriggerExtent);
+			TriggerVolume->SetRelativeLocation(FVector(0.0f, 0.0f, SafeDimensions.Z * 0.5f + TriggerExtent.Z));
+			TriggerVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			TriggerVolume->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+			TriggerVolume->SetGenerateOverlapEvents(true);
+		}
+	}
+
 	if (SelectionBounds)
 	{
-		SelectionBounds->SetBoxExtent(PieceData.Dimensions.ComponentMax(FVector(10.0f)) * 0.5f);
+		SelectionBounds->SetBoxExtent(SafeDimensions * 0.5f);
 		SelectionBounds->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 		SelectionBounds->SetHiddenInGame(true);
 		SelectionBounds->SetVisibility(false);
@@ -292,19 +337,74 @@ float AParkourBuildPiece::GetInwardBankRoll(float SlopeAngle) const
 
 void AParkourBuildPiece::OnBuildPieceOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (PieceData.PieceType != EParkourBuildPieceType::FinishGate)
-	{
-		return;
-	}
-
 	APawn* Pawn = Cast<APawn>(OtherActor);
 	if (!Pawn || !GetWorld())
 	{
 		return;
 	}
 
-	if (AParkourGameMode* ParkourGameMode = GetWorld()->GetAuthGameMode<AParkourGameMode>())
+	if (PieceData.PieceType == EParkourBuildPieceType::FinishGate)
 	{
-		ParkourGameMode->FinishRun(Pawn);
+		if (AParkourGameMode* ParkourGameMode = GetWorld()->GetAuthGameMode<AParkourGameMode>())
+		{
+			ParkourGameMode->FinishRun(Pawn);
+		}
+	}
+	else if (PieceData.PieceType == EParkourBuildPieceType::BoostPad && PieceData.bBoostPadEnabled)
+	{
+		ApplyBoostPad(Pawn);
+	}
+}
+
+void AParkourBuildPiece::ApplyBoostPad(APawn* Pawn)
+{
+	if (!Pawn || !CanBoostActor(Pawn))
+	{
+		return;
+	}
+
+	UCharacterMovementComponent* Movement = Pawn->FindComponentByClass<UCharacterMovementComponent>();
+	if (!Movement)
+	{
+		return;
+	}
+
+	FVector BoostDirection = GetActorForwardVector();
+	BoostDirection.Z = 0.0f;
+	BoostDirection = BoostDirection.GetSafeNormal();
+	if (BoostDirection.IsNearlyZero())
+	{
+		BoostDirection = FVector::ForwardVector;
+	}
+
+	const FVector HorizontalVelocity(Movement->Velocity.X, Movement->Velocity.Y, 0.0f);
+	const float CurrentForwardSpeed = FVector::DotProduct(HorizontalVelocity, BoostDirection);
+	if (CurrentForwardSpeed < PieceData.BoostStrength)
+	{
+		const FVector SidewaysVelocity = HorizontalVelocity - BoostDirection * CurrentForwardSpeed;
+		const FVector NewHorizontalVelocity = SidewaysVelocity + BoostDirection * PieceData.BoostStrength;
+		Movement->Velocity.X = NewHorizontalVelocity.X;
+		Movement->Velocity.Y = NewHorizontalVelocity.Y;
+	}
+
+	RecordBoostActor(Pawn);
+}
+
+bool AParkourBuildPiece::CanBoostActor(AActor* Actor) const
+{
+	if (!Actor || !GetWorld())
+	{
+		return false;
+	}
+
+	const float* LastTime = LastBoostTimes.Find(Actor);
+	return !LastTime || GetWorld()->GetTimeSeconds() - *LastTime >= BoostPadReuseCooldown;
+}
+
+void AParkourBuildPiece::RecordBoostActor(AActor* Actor)
+{
+	if (Actor && GetWorld())
+	{
+		LastBoostTimes.Add(Actor, GetWorld()->GetTimeSeconds());
 	}
 }

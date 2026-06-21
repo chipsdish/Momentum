@@ -38,6 +38,9 @@ protected:
 	void AddFinishGate();
 
 	UFUNCTION()
+	void AddBoostPad();
+
+	UFUNCTION()
 	void DuplicateSelected();
 
 	UFUNCTION()

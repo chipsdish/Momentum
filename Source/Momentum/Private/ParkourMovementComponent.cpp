@@ -121,6 +121,9 @@ void UParkourMovementComponent::CalcVelocity(float DeltaTime, float Friction, bo
 
 void UParkourMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 {
+	TryConsumeSurfJump();
+	ClampVelocity();
+
 	// Disable default lateral air control; CS/KZ-style acceleration is applied after falling physics.
 	Acceleration = FVector::ZeroVector;
 	Super::PhysFalling(DeltaTime, Iterations);
@@ -179,10 +182,18 @@ void UParkourMovementComponent::UpdateMovementState(float DeltaTime)
 	if (CurrentSlopeAngle >= SlideSlopeAngle)
 	{
 		ParkourMovementState = EParkourMovementState::Sliding;
+		if (const UWorld* World = GetWorld())
+		{
+			LastSurfContactTime = World->GetTimeSeconds();
+		}
 	}
 	else if (CurrentSlopeAngle >= SurfSlopeAngle)
 	{
 		ParkourMovementState = EParkourMovementState::Surfing;
+		if (const UWorld* World = GetWorld())
+		{
+			LastSurfContactTime = World->GetTimeSeconds();
+		}
 	}
 	else
 	{
@@ -259,10 +270,16 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 {
 	const FVector FloorNormal = GetFloorNormal();
+	if (const UWorld* World = GetWorld())
+	{
+		LastSurfContactTime = World->GetTimeSeconds();
+	}
+
 	if (FloorNormal.Z < MinSurfSurfaceNormalZ)
 	{
-		bHasLastSurfSurfaceVelocity = false;
-		SetMovementMode(MOVE_Falling);
+		Velocity = ClampSurfaceVerticalSpeed(Velocity);
+		LastSurfSurfaceVelocity = Velocity;
+		bHasLastSurfSurfaceVelocity = true;
 		return;
 	}
 
@@ -326,7 +343,16 @@ void UParkourMovementComponent::HandleBunnyHop(float DeltaTime)
 	bJumpRequestConsumed = true;
 
 	const bool bWasSurfingOrSliding = ParkourMovementState == EParkourMovementState::Surfing || ParkourMovementState == EParkourMovementState::Sliding;
-	bSkipNextSurfExitVelocityRestore = bWasSurfingOrSliding;
+	if (bWasSurfingOrSliding)
+	{
+		Velocity = ClampSurfaceVerticalSpeed(Velocity);
+		Velocity.Z = FMath::Max(Velocity.Z, JumpVelocity);
+		bHasLastSurfSurfaceVelocity = false;
+		bSkipNextSurfExitVelocityRestore = false;
+		SetMovementMode(MOVE_Falling);
+		return;
+	}
+
 	if (!DoJump(false, DeltaTime))
 	{
 		bSkipNextSurfExitVelocityRestore = false;
@@ -335,6 +361,11 @@ void UParkourMovementComponent::HandleBunnyHop(float DeltaTime)
 
 void UParkourMovementComponent::ClampVelocity()
 {
+	if (MaxFallSpeed > 0.0f && Velocity.Z < -MaxFallSpeed)
+	{
+		Velocity.Z = -MaxFallSpeed;
+	}
+
 	FVector HorizontalVelocity(Velocity.X, Velocity.Y, 0.0f);
 	const float HorizontalSpeed = HorizontalVelocity.Size();
 
@@ -474,4 +505,31 @@ bool UParkourMovementComponent::IsJumpBuffered() const
 	}
 
 	return World->GetTimeSeconds() - LastJumpPressedTime <= BunnyHopBufferTime;
+}
+
+bool UParkourMovementComponent::IsSurfJumpGraceActive() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	return World->GetTimeSeconds() - LastSurfContactTime <= SurfJumpGraceTime;
+}
+
+bool UParkourMovementComponent::TryConsumeSurfJump()
+{
+	if (!IsJumpBuffered() || !IsSurfJumpGraceActive())
+	{
+		return false;
+	}
+
+	JumpZVelocity = JumpVelocity;
+	bJumpRequestConsumed = true;
+	Velocity = ClampSurfaceVerticalSpeed(Velocity);
+	Velocity.Z = FMath::Max(Velocity.Z, JumpVelocity);
+	bHasLastSurfSurfaceVelocity = false;
+	bSkipNextSurfExitVelocityRestore = false;
+	return true;
 }

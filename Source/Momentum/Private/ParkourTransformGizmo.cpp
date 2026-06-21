@@ -1,6 +1,8 @@
 #include "ParkourTransformGizmo.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInterface.h"
 #include "UObject/ConstructorHelpers.h"
 
 AParkourTransformGizmo::AParkourTransformGizmo()
@@ -18,6 +20,7 @@ AParkourTransformGizmo::AParkourTransformGizmo()
 	UStaticMeshComponent* Handles[] = { XHandle, YHandle, ZHandle, XYHandle };
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> BasicShapeMaterial(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
 	for (UStaticMeshComponent* Handle : Handles)
 	{
 		Handle->SetupAttachment(SceneRoot);
@@ -29,6 +32,10 @@ AParkourTransformGizmo::AParkourTransformGizmo()
 		if (CubeMesh.Succeeded())
 		{
 			Handle->SetStaticMesh(CubeMesh.Object);
+		}
+		if (BasicShapeMaterial.Succeeded())
+		{
+			Handle->SetMaterial(0, BasicShapeMaterial.Object);
 		}
 	}
 
@@ -43,6 +50,11 @@ AParkourTransformGizmo::AParkourTransformGizmo()
 
 	XYHandle->SetRelativeLocation(FVector(80.0f, 80.0f, 0.0f));
 	XYHandle->SetRelativeScale3D(FVector(1.6f, 1.6f, 0.06f));
+
+	SetHandleColor(XHandle, FLinearColor(1.0f, 0.05f, 0.03f, 1.0f));
+	SetHandleColor(YHandle, FLinearColor(0.05f, 0.9f, 0.05f, 1.0f));
+	SetHandleColor(ZHandle, FLinearColor(0.08f, 0.35f, 1.0f, 1.0f));
+	SetHandleColor(XYHandle, FLinearColor(1.0f, 0.85f, 0.05f, 1.0f));
 
 	SetGizmoVisible(false);
 }
@@ -349,4 +361,28 @@ void AParkourTransformGizmo::SetGizmoVisible(bool bVisible)
 {
 	SetActorHiddenInGame(!bVisible);
 	SetActorEnableCollision(bVisible);
+}
+
+void AParkourTransformGizmo::SetHandleColor(UStaticMeshComponent* Handle, const FLinearColor& Color)
+{
+	if (!Handle)
+	{
+		return;
+	}
+
+	UMaterialInterface* SourceMaterial = Handle->GetMaterial(0);
+	if (!SourceMaterial)
+	{
+		return;
+	}
+
+	UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(SourceMaterial, this);
+	if (!DynamicMaterial)
+	{
+		return;
+	}
+
+	DynamicMaterial->SetVectorParameterValue(TEXT("Color"), Color);
+	DynamicMaterial->SetVectorParameterValue(TEXT("BaseColor"), Color);
+	Handle->SetMaterial(0, DynamicMaterial);
 }

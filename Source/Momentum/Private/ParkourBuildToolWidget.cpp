@@ -52,6 +52,7 @@ TSharedRef<SWidget> UParkourBuildToolWidget::RebuildWidget()
 	AddButton(Panel, TEXT("添加空中平台"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::AddAirPlatform);
 	AddButton(Panel, TEXT("添加墙边平台"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::AddWallPlatform);
 	AddButton(Panel, TEXT("添加终点线"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::AddFinishGate);
+	AddButton(Panel, TEXT("添加 BoostPad"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::AddBoostPad);
 	AddButton(Panel, TEXT("坡度 -5"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::DecreaseSelectedSlope);
 	AddButton(Panel, TEXT("坡度 +5"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::IncreaseSelectedSlope);
 	AddButton(Panel, TEXT("长度 -100"))->OnClicked.AddDynamic(this, &UParkourBuildToolWidget::DecreaseSelectedLength);
@@ -144,6 +145,14 @@ void UParkourBuildToolWidget::AddFinishGate()
 	if (AParkourBuildManager* BuildManager = FindBuildManager())
 	{
 		BuildManager->AddDefaultPiece(EParkourBuildPieceType::FinishGate);
+	}
+}
+
+void UParkourBuildToolWidget::AddBoostPad()
+{
+	if (AParkourBuildManager* BuildManager = FindBuildManager())
+	{
+		BuildManager->AddDefaultPiece(EParkourBuildPieceType::BoostPad);
 	}
 }
 

@@ -275,6 +275,7 @@ void AParkourBuildManager::ResetDefaultRuntimeLayout()
 
 	AddPieceFromData(MakeDefaultPieceData(EParkourBuildPieceType::AirPlatform));
 	AddPieceFromData(MakeDefaultPieceData(EParkourBuildPieceType::WallPlatform));
+	AddPieceFromData(MakeDefaultPieceData(EParkourBuildPieceType::BoostPad));
 	AddPieceFromData(MakeDefaultPieceData(EParkourBuildPieceType::FinishGate));
 	ClearSelection();
 }
@@ -355,8 +356,11 @@ FParkourBuildPieceData AParkourBuildManager::MakeDefaultPieceData(EParkourBuildP
 		PieceData.Label = TEXT("Sign");
 		break;
 	case EParkourBuildPieceType::BoostPad:
-		PieceData.Dimensions = FVector(260.0f, 180.0f, 20.0f);
-		PieceData.bBoostPadEnabled = false;
+		PieceData.Transform.AddToTranslation(FVector(450.0f, -450.0f, -80.0f));
+		PieceData.Dimensions = FVector(260.0f, 180.0f, 24.0f);
+		PieceData.bBoostPadEnabled = true;
+		PieceData.BoostStrength = 1400.0f;
+		PieceData.Label = TEXT("Boost Pad");
 		break;
 	default:
 		PieceData.Dimensions = FVector(400.0f, 400.0f, 80.0f);
