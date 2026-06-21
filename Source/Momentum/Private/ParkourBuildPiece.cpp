@@ -72,11 +72,39 @@ void AParkourBuildPiece::SetSelected(bool bSelected)
 	if (Mesh)
 	{
 		Mesh->SetRenderCustomDepth(bSelected);
+		Mesh->MarkRenderStateDirty();
 	}
 
 	if (LabelText)
 	{
 		LabelText->SetHiddenInGame(!bSelected && PieceData.PieceType != EParkourBuildPieceType::Sign);
+	}
+}
+
+void AParkourBuildPiece::SetBuildModeVisuals(bool bBuildModeActive)
+{
+	SetSelected(false);
+
+	if (Mesh)
+	{
+		Mesh->SetHiddenInGame(false);
+		Mesh->SetVisibility(true, true);
+		Mesh->SetRenderCustomDepth(false);
+		Mesh->MarkRenderStateDirty();
+	}
+
+	if (SelectionBounds)
+	{
+		SelectionBounds->SetCollisionEnabled(bBuildModeActive ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+		SelectionBounds->SetCollisionResponseToAllChannels(ECR_Ignore);
+		SelectionBounds->SetCollisionResponseToChannel(ECC_Visibility, bBuildModeActive ? ECR_Block : ECR_Ignore);
+		SelectionBounds->SetHiddenInGame(true);
+		SelectionBounds->SetVisibility(false, true);
+	}
+
+	if (LabelText)
+	{
+		LabelText->SetHiddenInGame(PieceData.PieceType != EParkourBuildPieceType::Sign);
 	}
 }
 

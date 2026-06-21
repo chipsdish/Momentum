@@ -250,8 +250,8 @@ void AParkourGameMode::SpawnDefaultGreyboxCourse()
 
 	World->SpawnActor<APlayerStart>(APlayerStart::StaticClass(), FVector(0.0f, 0.0f, 180.0f), FRotator::ZeroRotator);
 
-	SpawnGreyboxBlock(TEXT("Start Platform"), FVector(0.0f, 0.0f, 0.0f), FRotator::ZeroRotator, FVector(600.0f, 600.0f, 80.0f));
-	SpawnCourseLabel(TEXT("Start / 起点"), FVector(0.0f, -360.0f, 160.0f));
+	SpawnGreyboxBlock(TEXT("Start Platform"), FVector(0.0f, 0.0f, 0.0f), FRotator::ZeroRotator, FVector(1000.0f, 1000.0f, 80.0f));
+	SpawnCourseLabel(TEXT("Start / 起点"), FVector(0.0f, -620.0f, 160.0f));
 
 	SpawnGreyboxBlock(TEXT("Walkable Slope"), FVector(1300.0f, 0.0f, 60.0f), FRotator::ZeroRotator, FVector(900.0f, 420.0f, 70.0f), EParkourBuildPieceType::Ramp, 18.0f, false);
 	SpawnCourseLabel(TEXT("小坡: 正常行走"), FVector(1300.0f, -520.0f, 260.0f));

@@ -27,6 +27,9 @@ public:
 	void SetSelected(bool bSelected);
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetBuildModeVisuals(bool bBuildModeActive);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	void SetDimensions(const FVector& NewDimensions);
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")

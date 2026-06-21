@@ -92,6 +92,7 @@ protected:
 	void HandleBuildSecondaryReleased();
 	void UpdateBuildDrag();
 	void SyncGizmoToSelection();
+	void SetAllBuildPieceVisualsForBuildMode(bool bBuildModeActive) const;
 	void ClearAllBuildSelectionVisuals() const;
 
 	UPROPERTY(Transient)

@@ -210,6 +210,13 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 		return;
 	}
 
+	const FVector InitialHorizontalVelocity(Velocity.X, Velocity.Y, 0.0f);
+	const float InitialHorizontalSpeed = InitialHorizontalVelocity.Size();
+	if (InitialHorizontalSpeed <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
 	const FVector WishDirection = ComputeWishDirection();
 	const float ForwardAmount = FMath::Max(MoveInput.Y, 0.0f);
 	const float SideAmount = FMath::Abs(MoveInput.X);
@@ -219,6 +226,15 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 
 	const float WishSpeed = FMath::Max(MaxSpeed, AirWishSpeed) * InputAmount;
 	Accelerate(WishDirection, WishSpeed, AirAcceleration * AirControlStrength * DirectionalScale, DeltaTime);
+
+	FVector NewHorizontalVelocity(Velocity.X, Velocity.Y, 0.0f);
+	const float NewHorizontalSpeed = NewHorizontalVelocity.Size();
+	if (NewHorizontalSpeed > InitialHorizontalSpeed)
+	{
+		NewHorizontalVelocity *= InitialHorizontalSpeed / NewHorizontalSpeed;
+		Velocity.X = NewHorizontalVelocity.X;
+		Velocity.Y = NewHorizontalVelocity.Y;
+	}
 }
 
 void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)

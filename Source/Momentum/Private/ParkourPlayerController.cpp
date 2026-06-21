@@ -130,6 +130,7 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 	if (bEnabled)
 	{
 		GameplayPawn = GetPawn();
+		SetAllBuildPieceVisualsForBuildMode(true);
 
 		if (AParkourGameMode* ParkourGameMode = GetWorld()->GetAuthGameMode<AParkourGameMode>())
 		{
@@ -185,6 +186,7 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 			BuildManager->ClearSelection();
 		}
 		ClearAllBuildSelectionVisuals();
+		SetAllBuildPieceVisualsForBuildMode(false);
 
 		if (GameplayPawn)
 		{
@@ -423,6 +425,19 @@ void AParkourPlayerController::ClearAllBuildSelectionVisuals() const
 	for (TActorIterator<AParkourBuildPiece> It(GetWorld()); It; ++It)
 	{
 		It->SetSelected(false);
+	}
+}
+
+void AParkourPlayerController::SetAllBuildPieceVisualsForBuildMode(bool bBuildModeActive) const
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	for (TActorIterator<AParkourBuildPiece> It(GetWorld()); It; ++It)
+	{
+		It->SetBuildModeVisuals(bBuildModeActive);
 	}
 }
 

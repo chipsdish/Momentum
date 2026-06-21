@@ -16,6 +16,14 @@ void AParkourBuildManager::BeginPlay()
 	Super::BeginPlay();
 	RegisterExistingBuildPieces();
 	TryAutoLoadSavedLayout();
+
+	for (AParkourBuildPiece* Piece : RuntimePieces)
+	{
+		if (Piece)
+		{
+			Piece->SetBuildModeVisuals(false);
+		}
+	}
 }
 
 AParkourBuildPiece* AParkourBuildManager::AddDefaultPiece(EParkourBuildPieceType PieceType)
