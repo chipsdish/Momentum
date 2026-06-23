@@ -190,19 +190,10 @@ void AParkourGameMode::EnsureBasicLighting()
 		return;
 	}
 
-	if (!UGameplayStatics::GetActorOfClass(this, ADirectionalLight::StaticClass()))
+	ADirectionalLight* DirectionalLight = Cast<ADirectionalLight>(UGameplayStatics::GetActorOfClass(this, ADirectionalLight::StaticClass()));
+	if (!DirectionalLight)
 	{
-		ADirectionalLight* DirectionalLight = World->SpawnActor<ADirectionalLight>(ADirectionalLight::StaticClass(), FVector::ZeroVector, FRotator(-45.0f, -35.0f, 0.0f));
-		if (DirectionalLight && DirectionalLight->GetLightComponent())
-		{
-			DirectionalLight->GetLightComponent()->SetMobility(EComponentMobility::Movable);
-			DirectionalLight->GetLightComponent()->SetIntensity(6.0f);
-			if (UDirectionalLightComponent* DirectionalLightComponent = Cast<UDirectionalLightComponent>(DirectionalLight->GetLightComponent()))
-			{
-				DirectionalLightComponent->SetAtmosphereSunLight(true);
-				DirectionalLightComponent->SetAtmosphereSunLightIndex(0);
-			}
-		}
+		DirectionalLight = World->SpawnActor<ADirectionalLight>(ADirectionalLight::StaticClass(), FVector::ZeroVector, FRotator(-45.0f, -35.0f, 0.0f));
 #if WITH_EDITOR
 		if (DirectionalLight)
 		{
@@ -211,20 +202,44 @@ void AParkourGameMode::EnsureBasicLighting()
 #endif
 	}
 
-	if (!UGameplayStatics::GetActorOfClass(this, ASkyLight::StaticClass()))
+	if (DirectionalLight && DirectionalLight->GetLightComponent())
 	{
-		ASkyLight* SkyLight = World->SpawnActor<ASkyLight>(ASkyLight::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
-		if (SkyLight && SkyLight->GetLightComponent())
+		DirectionalLight->GetLightComponent()->SetMobility(EComponentMobility::Movable);
+		DirectionalLight->GetLightComponent()->SetIntensity(5.0f);
+		if (UDirectionalLightComponent* DirectionalLightComponent = Cast<UDirectionalLightComponent>(DirectionalLight->GetLightComponent()))
 		{
-			SkyLight->GetLightComponent()->SetMobility(EComponentMobility::Movable);
-			SkyLight->GetLightComponent()->SetIntensity(1.6f);
+			DirectionalLightComponent->SetAtmosphereSunLight(true);
+			DirectionalLightComponent->SetAtmosphereSunLightIndex(0);
 		}
+	}
+
+	ASkyLight* SkyLight = Cast<ASkyLight>(UGameplayStatics::GetActorOfClass(this, ASkyLight::StaticClass()));
+	if (!SkyLight)
+	{
+		SkyLight = World->SpawnActor<ASkyLight>(ASkyLight::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
 #if WITH_EDITOR
 		if (SkyLight)
 		{
 			SkyLight->SetActorLabel(TEXT("Runtime Safety Sky Light"));
 		}
 #endif
+	}
+
+	if (SkyLight && SkyLight->GetLightComponent())
+	{
+		SkyLight->GetLightComponent()->SetMobility(EComponentMobility::Movable);
+		SkyLight->GetLightComponent()->SetIntensity(3.0f);
+		if (USkyLightComponent* SkyLightComponent = Cast<USkyLightComponent>(SkyLight->GetLightComponent()))
+		{
+			SkyLightComponent->SourceType = SLS_CapturedScene;
+			SkyLightComponent->bRealTimeCapture = true;
+			SkyLightComponent->bLowerHemisphereIsBlack = false;
+			SkyLightComponent->SetLightColor(FLinearColor::White);
+			SkyLightComponent->SetLowerHemisphereColor(FLinearColor(0.85f, 0.9f, 1.0f, 1.0f));
+			SkyLightComponent->SetIndirectLightingIntensity(2.0f);
+			SkyLightComponent->SetVolumetricScatteringIntensity(0.5f);
+			SkyLightComponent->RecaptureSky();
+		}
 	}
 
 	if (!UGameplayStatics::GetActorOfClass(this, ASkyAtmosphere::StaticClass()))
