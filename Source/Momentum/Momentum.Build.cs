@@ -15,7 +15,8 @@ public class Momentum : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
-			"UMG"
+			"UMG",
+			"ProceduralMeshComponent"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

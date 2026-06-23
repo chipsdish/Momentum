@@ -7,6 +7,7 @@
 
 class UBoxComponent;
 class APawn;
+class UProceduralMeshComponent;
 class UPrimitiveComponent;
 class UStaticMeshComponent;
 class UTextRenderComponent;
@@ -76,6 +77,9 @@ public:
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
+	TObjectPtr<UProceduralMeshComponent> RampMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
 	TObjectPtr<UBoxComponent> SelectionBounds;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
@@ -90,7 +94,10 @@ public:
 protected:
 	void ApplyPieceVisuals();
 	void ApplySlopeRotation();
-	float GetInwardBankRoll(float SlopeAngle) const;
+	void RebuildRampMesh(const FVector& SafeDimensions);
+	bool IsRampLikePiece() const;
+	float GetRampRise(const FVector& SafeDimensions) const;
+	float GetInwardSideSign() const;
 	void ApplyBoostPad(APawn* Pawn);
 	bool CanBoostActor(AActor* Actor) const;
 	void RecordBoostActor(AActor* Actor);

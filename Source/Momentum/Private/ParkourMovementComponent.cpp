@@ -159,22 +159,6 @@ void UParkourMovementComponent::OnMovementModeChanged(EMovementMode PreviousMove
 	}
 }
 
-bool UParkourMovementComponent::ShouldCatchAir(const FFindFloorResult& OldFloor, const FFindFloorResult& NewFloor)
-{
-	if (IsSurfReattachBlocked() && NewFloor.bBlockingHit)
-	{
-		const FVector FloorNormal = NewFloor.HitResult.ImpactNormal.GetSafeNormal();
-		const float UpDot = FMath::Clamp(FVector::DotProduct(FloorNormal, FVector::UpVector), -1.0f, 1.0f);
-		const float SlopeAngle = FMath::RadiansToDegrees(FMath::Acos(UpDot));
-		if (SlopeAngle >= SurfSlopeAngle)
-		{
-			return true;
-		}
-	}
-
-	return Super::ShouldCatchAir(OldFloor, NewFloor);
-}
-
 void UParkourMovementComponent::UpdateMovementState(float DeltaTime)
 {
 	if (!HasValidData())
@@ -194,14 +178,6 @@ void UParkourMovementComponent::UpdateMovementState(float DeltaTime)
 	}
 
 	CheckSlope();
-
-	if (CurrentSlopeAngle >= SurfSlopeAngle && IsSurfReattachBlocked())
-	{
-		ParkourMovementState = EParkourMovementState::Airborne;
-		bHasLastSurfSurfaceVelocity = false;
-		SetMovementMode(MOVE_Falling);
-		return;
-	}
 
 	if (CurrentSlopeAngle >= SlideSlopeAngle)
 	{
@@ -339,12 +315,6 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 		}
 	}
 
-	if (ShouldDetachFromSurfUphill(FloorNormal, DownSlopeDirection))
-	{
-		DetachFromSurf(ComputeSurfaceVelocity(Velocity, FloorNormal, true));
-		return;
-	}
-
 	Velocity = ComputeSurfaceVelocity(Velocity, FloorNormal, false);
 	LastSurfSurfaceVelocity = Velocity;
 	bHasLastSurfSurfaceVelocity = true;
@@ -382,7 +352,6 @@ void UParkourMovementComponent::HandleBunnyHop(float DeltaTime)
 		Velocity.Z = FMath::Max(Velocity.Z, JumpVelocity);
 		bHasLastSurfSurfaceVelocity = false;
 		bSkipNextSurfExitVelocityRestore = false;
-		BeginSurfReattachBlock();
 		SetMovementMode(MOVE_Falling);
 		return;
 	}
@@ -530,49 +499,6 @@ void UParkourMovementComponent::Accelerate(const FVector& WishDirection, float W
 	Velocity += NormalizedWishDirection * AccelerationSpeed;
 }
 
-bool UParkourMovementComponent::ShouldDetachFromSurfUphill(const FVector& FloorNormal, const FVector& DownSlopeDirection) const
-{
-	const FVector SafeDownSlopeDirection = DownSlopeDirection.GetSafeNormal();
-	if (SafeDownSlopeDirection.IsNearlyZero())
-	{
-		return false;
-	}
-
-	const FVector UpSlopeDirection = -SafeDownSlopeDirection;
-	const FVector HorizontalVelocity(Velocity.X, Velocity.Y, 0.0f);
-	const float UphillSpeed = FVector::DotProduct(HorizontalVelocity, UpSlopeDirection);
-	if (UphillSpeed < SurfUphillDetachSpeed)
-	{
-		return false;
-	}
-
-	const FVector SurfaceVelocity = ComputeSurfaceVelocity(Velocity, FloorNormal, true);
-	return SurfaceVelocity.Z > KINDA_SMALL_NUMBER;
-}
-
-void UParkourMovementComponent::DetachFromSurf(const FVector& ExitVelocity)
-{
-	Velocity = ClampSurfaceVerticalSpeed(ExitVelocity);
-	bHasLastSurfSurfaceVelocity = false;
-	bSkipNextSurfExitVelocityRestore = false;
-	BeginSurfReattachBlock();
-	SetMovementMode(MOVE_Falling);
-}
-
-void UParkourMovementComponent::BeginSurfReattachBlock()
-{
-	if (const UWorld* World = GetWorld())
-	{
-		SurfReattachBlockedUntilTime = World->GetTimeSeconds() + SurfReattachBlockTime;
-	}
-}
-
-bool UParkourMovementComponent::IsSurfReattachBlocked() const
-{
-	const UWorld* World = GetWorld();
-	return World && World->GetTimeSeconds() < SurfReattachBlockedUntilTime;
-}
-
 bool UParkourMovementComponent::IsJumpBuffered() const
 {
 	const UWorld* World = GetWorld();
@@ -608,6 +534,5 @@ bool UParkourMovementComponent::TryConsumeSurfJump()
 	Velocity.Z = FMath::Max(Velocity.Z, JumpVelocity);
 	bHasLastSurfSurfaceVelocity = false;
 	bSkipNextSurfExitVelocityRestore = false;
-	BeginSurfReattachBlock();
 	return true;
 }

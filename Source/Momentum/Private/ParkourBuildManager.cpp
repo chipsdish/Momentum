@@ -322,12 +322,10 @@ FParkourBuildPieceData AParkourBuildManager::MakeDefaultPieceData(EParkourBuildP
 	case EParkourBuildPieceType::Ramp:
 		PieceData.Dimensions = FVector(600.0f, 300.0f, 60.0f);
 		PieceData.SlopeAngle = 35.0f;
-		PieceData.Transform.SetRotation(FRotator(PieceData.SlopeAngle, 0.0f, 0.0f).Quaternion());
 		break;
 	case EParkourBuildPieceType::JumpRamp:
 		PieceData.Dimensions = FVector(350.0f, 250.0f, 80.0f);
 		PieceData.SlopeAngle = 25.0f;
-		PieceData.Transform.SetRotation(FRotator(PieceData.SlopeAngle, 0.0f, 0.0f).Quaternion());
 		break;
 	case EParkourBuildPieceType::AirPlatform:
 		PieceData.Transform.AddToTranslation(FVector(600.0f, 0.0f, 300.0f));
@@ -341,7 +339,6 @@ FParkourBuildPieceData AParkourBuildManager::MakeDefaultPieceData(EParkourBuildP
 		PieceData.Dimensions = FVector(900.0f, 350.0f, 80.0f);
 		PieceData.SlopeAngle = 45.0f;
 		PieceData.bUseInwardBank = true;
-		PieceData.Transform.SetRotation(FRotator(0.0f, 0.0f, PieceData.SlopeAngle).Quaternion());
 		break;
 	case EParkourBuildPieceType::RespawnVolume:
 		PieceData.Dimensions = FVector(1000.0f, 1000.0f, 120.0f);

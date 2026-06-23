@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
 #include "ParkourGameMode.h"
+#include "ProceduralMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
 AParkourBuildPiece::AParkourBuildPiece()
@@ -22,6 +23,15 @@ AParkourBuildPiece::AParkourBuildPiece()
 	Mesh->SetCollisionResponseToAllChannels(ECR_Block);
 	Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	Mesh->SetGenerateOverlapEvents(true);
+
+	RampMesh = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("RampMesh"));
+	RampMesh->SetupAttachment(SceneRoot);
+	RampMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RampMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+	RampMesh->SetGenerateOverlapEvents(false);
+	RampMesh->SetHiddenInGame(true);
+	RampMesh->SetVisibility(false);
+	RampMesh->bUseComplexAsSimpleCollision = false;
 
 	SelectionBounds = CreateDefaultSubobject<UBoxComponent>(TEXT("SelectionBounds"));
 	SelectionBounds->SetupAttachment(SceneRoot);
@@ -61,6 +71,12 @@ void AParkourBuildPiece::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (IsRampLikePiece() && PieceData.SlopeAngle > KINDA_SMALL_NUMBER)
+	{
+		ApplySlopeRotation();
+	}
+	ApplyPieceVisuals();
+
 	if (TriggerVolume)
 	{
 		TriggerVolume->OnComponentBeginOverlap.AddUniqueDynamic(this, &AParkourBuildPiece::OnBuildPieceOverlap);
@@ -85,7 +101,7 @@ void AParkourBuildPiece::ConfigureFromData(const FParkourBuildPieceData& NewPiec
 	}
 
 	SetActorTransform(PieceData.Transform);
-	if (PieceData.SlopeAngle > KINDA_SMALL_NUMBER)
+	if (IsRampLikePiece() && PieceData.SlopeAngle > KINDA_SMALL_NUMBER)
 	{
 		ApplySlopeRotation();
 	}
@@ -106,6 +122,13 @@ void AParkourBuildPiece::SetSelected(bool bSelected)
 		Mesh->SetRenderCustomDepth(false);
 		Mesh->SetCustomDepthStencilValue(0);
 		Mesh->MarkRenderStateDirty();
+	}
+
+	if (RampMesh)
+	{
+		RampMesh->SetRenderCustomDepth(false);
+		RampMesh->SetCustomDepthStencilValue(0);
+		RampMesh->MarkRenderStateDirty();
 	}
 
 	if (LabelText)
@@ -132,11 +155,22 @@ void AParkourBuildPiece::SetBuildModeVisuals(bool bBuildModeActive)
 
 	if (Mesh)
 	{
-		Mesh->SetHiddenInGame(false);
-		Mesh->SetVisibility(true, true);
+		const bool bUseRampMesh = IsRampLikePiece();
+		Mesh->SetHiddenInGame(bUseRampMesh);
+		Mesh->SetVisibility(!bUseRampMesh, true);
 		Mesh->SetRenderCustomDepth(false);
 		Mesh->SetCustomDepthStencilValue(0);
 		Mesh->MarkRenderStateDirty();
+	}
+
+	if (RampMesh)
+	{
+		const bool bUseRampMesh = IsRampLikePiece();
+		RampMesh->SetHiddenInGame(!bUseRampMesh);
+		RampMesh->SetVisibility(bUseRampMesh, true);
+		RampMesh->SetRenderCustomDepth(false);
+		RampMesh->SetCustomDepthStencilValue(0);
+		RampMesh->MarkRenderStateDirty();
 	}
 
 	if (SelectionBounds)
@@ -224,7 +258,10 @@ void AParkourBuildPiece::SetPieceTypeName(const FString& NewPieceTypeName)
 void AParkourBuildPiece::SetSlopeAngle(float NewSlopeAngle)
 {
 	PieceData.SlopeAngle = FMath::Clamp(FMath::Abs(NewSlopeAngle), 0.0f, 85.0f);
-	ApplySlopeRotation();
+	if (IsRampLikePiece())
+	{
+		ApplySlopeRotation();
+	}
 	ApplyPieceVisuals();
 }
 
@@ -236,7 +273,7 @@ void AParkourBuildPiece::AdjustSlopeAngle(float DeltaAngle)
 void AParkourBuildPiece::SetUseInwardBank(bool bNewUseInwardBank)
 {
 	PieceData.bUseInwardBank = bNewUseInwardBank;
-	if (PieceData.SlopeAngle > KINDA_SMALL_NUMBER)
+	if (IsRampLikePiece() && PieceData.SlopeAngle > KINDA_SMALL_NUMBER)
 	{
 		ApplySlopeRotation();
 	}
@@ -245,12 +282,22 @@ void AParkourBuildPiece::SetUseInwardBank(bool bNewUseInwardBank)
 void AParkourBuildPiece::ApplyPieceVisuals()
 {
 	const FVector SafeDimensions = PieceData.Dimensions.ComponentMax(FVector(10.0f));
+	const bool bUseRampMesh = IsRampLikePiece();
+	const float VisualHeight = bUseRampMesh ? GetRampRise(SafeDimensions) : SafeDimensions.Z;
 
 	if (Mesh)
 	{
 		Mesh->SetRelativeScale3D(SafeDimensions / 100.0f);
+		Mesh->SetHiddenInGame(bUseRampMesh);
+		Mesh->SetVisibility(!bUseRampMesh, true);
 
-		if (PieceData.PieceType == EParkourBuildPieceType::FinishGate)
+		if (bUseRampMesh)
+		{
+			Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+			Mesh->SetGenerateOverlapEvents(false);
+		}
+		else if (PieceData.PieceType == EParkourBuildPieceType::FinishGate)
 		{
 			Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 			Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -263,6 +310,33 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 			Mesh->SetCollisionResponseToAllChannels(ECR_Block);
 			Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 			Mesh->SetGenerateOverlapEvents(false);
+		}
+	}
+
+	if (RampMesh)
+	{
+		RampMesh->ClearAllMeshSections();
+		RampMesh->ClearCollisionConvexMeshes();
+		RampMesh->SetHiddenInGame(!bUseRampMesh);
+		RampMesh->SetVisibility(bUseRampMesh, true);
+
+		if (bUseRampMesh)
+		{
+			RebuildRampMesh(SafeDimensions);
+			if (Mesh && Mesh->GetMaterial(0))
+			{
+				RampMesh->SetMaterial(0, Mesh->GetMaterial(0));
+			}
+			RampMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			RampMesh->SetCollisionResponseToAllChannels(ECR_Block);
+			RampMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+			RampMesh->SetGenerateOverlapEvents(false);
+		}
+		else
+		{
+			RampMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			RampMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+			RampMesh->SetGenerateOverlapEvents(false);
 		}
 	}
 
@@ -295,7 +369,8 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 
 	if (SelectionBounds)
 	{
-		SelectionBounds->SetBoxExtent(SafeDimensions * 0.5f);
+		SelectionBounds->SetRelativeLocation(bUseRampMesh ? FVector(0.0f, 0.0f, VisualHeight * 0.5f) : FVector::ZeroVector);
+		SelectionBounds->SetBoxExtent(bUseRampMesh ? FVector(SafeDimensions.X * 0.5f, SafeDimensions.Y * 0.5f, VisualHeight * 0.5f) : SafeDimensions * 0.5f);
 		SelectionBounds->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 		SelectionBounds->SetHiddenInGame(true);
 		SelectionBounds->SetVisibility(false);
@@ -305,7 +380,7 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 	{
 		const FString Label = PieceData.Label.IsEmpty() ? UEnum::GetValueAsString(PieceData.PieceType) : PieceData.Label;
 		LabelText->SetText(FText::FromString(Label));
-		LabelText->SetRelativeLocation(FVector(0.0f, 0.0f, PieceData.Dimensions.Z * 0.5f + 80.0f));
+		LabelText->SetRelativeLocation(FVector(0.0f, 0.0f, VisualHeight + 80.0f));
 		LabelText->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 		LabelText->SetHiddenInGame(PieceData.PieceType != EParkourBuildPieceType::Sign);
 	}
@@ -314,25 +389,144 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 void AParkourBuildPiece::ApplySlopeRotation()
 {
 	FRotator NewRotation = GetActorRotation();
-	if (PieceData.bUseInwardBank)
-	{
-		NewRotation.Pitch = 0.0f;
-		NewRotation.Roll = GetInwardBankRoll(PieceData.SlopeAngle);
-	}
-	else
-	{
-		NewRotation.Pitch = PieceData.SlopeAngle;
-		NewRotation.Roll = 0.0f;
-	}
+	// Ramp geometry now owns the slope. Keep actor pitch/roll flat so hidden side faces cannot become floor candidates.
+	NewRotation.Pitch = 0.0f;
+	NewRotation.Roll = 0.0f;
 
 	SetActorRotation(NewRotation);
 	PieceData.Transform = GetActorTransform();
 }
 
-float AParkourBuildPiece::GetInwardBankRoll(float SlopeAngle) const
+void AParkourBuildPiece::RebuildRampMesh(const FVector& SafeDimensions)
 {
-	const float SideSign = GetActorLocation().Y >= 0.0f ? -1.0f : 1.0f;
-	return FMath::Abs(SlopeAngle) * SideSign;
+	if (!RampMesh)
+	{
+		return;
+	}
+
+	TArray<FVector> Vertices;
+	TArray<int32> Triangles;
+	TArray<FVector> Normals;
+	TArray<FVector2D> UV0;
+
+	auto AddTriangle = [&Vertices, &Triangles, &Normals, &UV0](FVector A, FVector B, FVector C, const FVector& DesiredNormal)
+	{
+		FVector Normal = FVector::CrossProduct(B - A, C - A).GetSafeNormal();
+		if (Normal.IsNearlyZero())
+		{
+			Normal = DesiredNormal.GetSafeNormal();
+		}
+		if (FVector::DotProduct(Normal, DesiredNormal) < 0.0f)
+		{
+			Swap(B, C);
+			Normal *= -1.0f;
+		}
+
+		const int32 BaseIndex = Vertices.Num();
+		Vertices.Add(A);
+		Vertices.Add(B);
+		Vertices.Add(C);
+		Triangles.Add(BaseIndex);
+		Triangles.Add(BaseIndex + 1);
+		Triangles.Add(BaseIndex + 2);
+		Normals.Add(Normal);
+		Normals.Add(Normal);
+		Normals.Add(Normal);
+		UV0.Add(FVector2D(0.0f, 0.0f));
+		UV0.Add(FVector2D(1.0f, 0.0f));
+		UV0.Add(FVector2D(1.0f, 1.0f));
+
+		const int32 ReverseBaseIndex = Vertices.Num();
+		Vertices.Add(A);
+		Vertices.Add(C);
+		Vertices.Add(B);
+		Triangles.Add(ReverseBaseIndex);
+		Triangles.Add(ReverseBaseIndex + 1);
+		Triangles.Add(ReverseBaseIndex + 2);
+		Normals.Add(-Normal);
+		Normals.Add(-Normal);
+		Normals.Add(-Normal);
+		UV0.Add(FVector2D(0.0f, 0.0f));
+		UV0.Add(FVector2D(1.0f, 1.0f));
+		UV0.Add(FVector2D(1.0f, 0.0f));
+	};
+
+	auto AddQuad = [&AddTriangle](const FVector& A, const FVector& B, const FVector& C, const FVector& D, const FVector& DesiredNormal)
+	{
+		AddTriangle(A, B, C, DesiredNormal);
+		AddTriangle(A, C, D, DesiredNormal);
+	};
+
+	const float HalfX = SafeDimensions.X * 0.5f;
+	const float HalfY = SafeDimensions.Y * 0.5f;
+	const float Rise = GetRampRise(SafeDimensions);
+	TArray<FVector> ConvexVertices;
+
+	if (PieceData.bUseInwardBank)
+	{
+		const float InwardSign = GetInwardSideSign();
+		const float LowY = InwardSign * HalfY;
+		const float HighY = -InwardSign * HalfY;
+
+		const FVector LowA(-HalfX, LowY, 0.0f);
+		const FVector LowB(HalfX, LowY, 0.0f);
+		const FVector HighBaseA(-HalfX, HighY, 0.0f);
+		const FVector HighBaseB(HalfX, HighY, 0.0f);
+		const FVector HighTopA(-HalfX, HighY, Rise);
+		const FVector HighTopB(HalfX, HighY, Rise);
+
+		ConvexVertices = { LowA, LowB, HighBaseA, HighBaseB, HighTopA, HighTopB };
+		const FVector TopNormal(0.0f, InwardSign * Rise / SafeDimensions.Y, 1.0f);
+
+		AddQuad(LowA, LowB, HighBaseB, HighBaseA, FVector::DownVector);
+		AddQuad(LowA, HighTopA, HighTopB, LowB, TopNormal.GetSafeNormal());
+		AddQuad(HighBaseA, HighBaseB, HighTopB, HighTopA, FVector(0.0f, -InwardSign, 0.0f));
+		AddTriangle(LowA, HighBaseA, HighTopA, FVector(-1.0f, 0.0f, 0.0f));
+		AddTriangle(LowB, HighTopB, HighBaseB, FVector(1.0f, 0.0f, 0.0f));
+	}
+	else
+	{
+		const FVector LowLeft(-HalfX, -HalfY, 0.0f);
+		const FVector LowRight(-HalfX, HalfY, 0.0f);
+		const FVector HighBaseLeft(HalfX, -HalfY, 0.0f);
+		const FVector HighBaseRight(HalfX, HalfY, 0.0f);
+		const FVector HighTopLeft(HalfX, -HalfY, Rise);
+		const FVector HighTopRight(HalfX, HalfY, Rise);
+
+		ConvexVertices = { LowLeft, LowRight, HighBaseLeft, HighBaseRight, HighTopLeft, HighTopRight };
+		const FVector TopNormal(-Rise / SafeDimensions.X, 0.0f, 1.0f);
+
+		AddQuad(LowLeft, HighBaseLeft, HighBaseRight, LowRight, FVector::DownVector);
+		AddQuad(LowLeft, LowRight, HighTopRight, HighTopLeft, TopNormal.GetSafeNormal());
+		AddQuad(HighBaseLeft, HighTopLeft, HighTopRight, HighBaseRight, FVector::ForwardVector);
+		AddTriangle(LowLeft, HighTopLeft, HighBaseLeft, FVector::LeftVector);
+		AddTriangle(LowRight, HighBaseRight, HighTopRight, FVector::RightVector);
+	}
+
+	RampMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), false);
+
+	TArray<TArray<FVector>> ConvexMeshes;
+	ConvexMeshes.Add(ConvexVertices);
+	RampMesh->SetCollisionConvexMeshes(ConvexMeshes);
+}
+
+bool AParkourBuildPiece::IsRampLikePiece() const
+{
+	return PieceData.PieceType == EParkourBuildPieceType::Ramp
+		|| PieceData.PieceType == EParkourBuildPieceType::JumpRamp
+		|| PieceData.PieceType == EParkourBuildPieceType::AccelerationRamp;
+}
+
+float AParkourBuildPiece::GetRampRise(const FVector& SafeDimensions) const
+{
+	const float AngleRadians = FMath::DegreesToRadians(FMath::Clamp(PieceData.SlopeAngle, 0.0f, 85.0f));
+	const float Run = PieceData.bUseInwardBank ? SafeDimensions.Y : SafeDimensions.X;
+	return FMath::Max(FMath::Tan(AngleRadians) * Run, 1.0f);
+}
+
+float AParkourBuildPiece::GetInwardSideSign() const
+{
+	return GetActorLocation().Y >= 0.0f ? -1.0f : 1.0f;
 }
 
 void AParkourBuildPiece::OnBuildPieceOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
