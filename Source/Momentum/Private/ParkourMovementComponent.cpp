@@ -121,7 +121,6 @@ void UParkourMovementComponent::CalcVelocity(float DeltaTime, float Friction, bo
 
 void UParkourMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 {
-	ProbeAirborneSurfContact();
 	TryConsumeSurfJump();
 	ClampVelocity();
 
@@ -146,7 +145,7 @@ void UParkourMovementComponent::OnMovementModeChanged(EMovementMode PreviousMove
 	{
 		if (!bSkipNextSurfExitVelocityRestore)
 		{
-			Velocity = SanitizeSurfExitVelocity(LastSurfSurfaceVelocity);
+			Velocity = ClampSurfaceVerticalSpeed(LastSurfSurfaceVelocity);
 		}
 
 		bHasLastSurfSurfaceVelocity = false;
@@ -175,7 +174,6 @@ void UParkourMovementComponent::UpdateMovementState(float DeltaTime)
 		ParkourMovementState = EParkourMovementState::Airborne;
 		CurrentSlopeAngle = 0.0f;
 		LastFloorNormal = FVector::UpVector;
-		ProbeAirborneSurfContact();
 		return;
 	}
 
@@ -279,7 +277,7 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 
 	if (FloorNormal.Z < MinSurfSurfaceNormalZ)
 	{
-		Velocity = SanitizeSurfExitVelocity(Velocity);
+		Velocity = ClampSurfaceVerticalSpeed(Velocity);
 		LastSurfSurfaceVelocity = Velocity;
 		bHasLastSurfSurfaceVelocity = true;
 		return;
@@ -314,8 +312,8 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 		}
 	}
 
-	Velocity = ComputeSurfaceVelocity(Velocity, FloorNormal, true);
-	LastSurfSurfaceVelocity = SanitizeSurfExitVelocity(Velocity);
+	Velocity = ComputeSurfaceVelocity(Velocity, FloorNormal, false);
+	LastSurfSurfaceVelocity = Velocity;
 	bHasLastSurfSurfaceVelocity = true;
 }
 
@@ -329,7 +327,8 @@ bool UParkourMovementComponent::CheckSlope()
 	}
 
 	LastFloorNormal = CurrentFloor.HitResult.ImpactNormal.GetSafeNormal();
-	CurrentSlopeAngle = ComputeSlopeAngleFromNormal(LastFloorNormal);
+	const float UpDot = FMath::Clamp(FVector::DotProduct(LastFloorNormal, FVector::UpVector), -1.0f, 1.0f);
+	CurrentSlopeAngle = FMath::RadiansToDegrees(FMath::Acos(UpDot));
 	return true;
 }
 
@@ -346,7 +345,7 @@ void UParkourMovementComponent::HandleBunnyHop(float DeltaTime)
 	const bool bWasSurfingOrSliding = ParkourMovementState == EParkourMovementState::Surfing || ParkourMovementState == EParkourMovementState::Sliding;
 	if (bWasSurfingOrSliding)
 	{
-		Velocity = SanitizeSurfExitVelocity(Velocity);
+		Velocity = ClampSurfaceVerticalSpeed(Velocity);
 		Velocity.Z = FMath::Max(Velocity.Z, JumpVelocity);
 		bHasLastSurfSurfaceVelocity = false;
 		bSkipNextSurfExitVelocityRestore = false;
@@ -449,17 +448,6 @@ FVector UParkourMovementComponent::ClampSurfaceVerticalSpeed(const FVector& Curr
 	return ClampedVelocity;
 }
 
-FVector UParkourMovementComponent::SanitizeSurfExitVelocity(const FVector& CurrentVelocity) const
-{
-	FVector ExitVelocity = ClampSurfaceVerticalSpeed(CurrentVelocity);
-	if (MaxSurfExitDownwardSpeed >= 0.0f && ExitVelocity.Z < -MaxSurfExitDownwardSpeed)
-	{
-		ExitVelocity.Z = -MaxSurfExitDownwardSpeed;
-	}
-
-	return ExitVelocity;
-}
-
 FVector UParkourMovementComponent::GetFloorNormal() const
 {
 	return CurrentFloor.bBlockingHit ? CurrentFloor.HitResult.ImpactNormal.GetSafeNormal() : FVector::UpVector;
@@ -519,51 +507,6 @@ bool UParkourMovementComponent::IsJumpBuffered() const
 	return World->GetTimeSeconds() - LastJumpPressedTime <= BunnyHopBufferTime;
 }
 
-float UParkourMovementComponent::ComputeSlopeAngleFromNormal(const FVector& SurfaceNormal) const
-{
-	const FVector SafeNormal = SurfaceNormal.GetSafeNormal();
-	if (SafeNormal.IsNearlyZero())
-	{
-		return 0.0f;
-	}
-
-	const float UpDot = FMath::Clamp(FVector::DotProduct(SafeNormal, FVector::UpVector), -1.0f, 1.0f);
-	return FMath::RadiansToDegrees(FMath::Acos(UpDot));
-}
-
-void UParkourMovementComponent::UpdateRecentSurfContactFromFloor(const FFindFloorResult& FloorResult)
-{
-	if (!FloorResult.bBlockingHit || !GetWorld())
-	{
-		return;
-	}
-
-	const FVector SurfaceNormal = FloorResult.HitResult.ImpactNormal.GetSafeNormal();
-	const float SlopeAngle = ComputeSlopeAngleFromNormal(SurfaceNormal);
-	if (SlopeAngle < SurfSlopeAngle)
-	{
-		return;
-	}
-
-	LastFloorNormal = SurfaceNormal;
-	CurrentSlopeAngle = SlopeAngle;
-	LastSurfContactTime = GetWorld()->GetTimeSeconds();
-	LastSurfSurfaceVelocity = SanitizeSurfExitVelocity(Velocity);
-	bHasLastSurfSurfaceVelocity = true;
-}
-
-void UParkourMovementComponent::ProbeAirborneSurfContact()
-{
-	if (!UpdatedComponent)
-	{
-		return;
-	}
-
-	FFindFloorResult ProbeFloor;
-	FindFloor(UpdatedComponent->GetComponentLocation(), ProbeFloor, false);
-	UpdateRecentSurfContactFromFloor(ProbeFloor);
-}
-
 bool UParkourMovementComponent::IsSurfJumpGraceActive() const
 {
 	const UWorld* World = GetWorld();
@@ -584,7 +527,7 @@ bool UParkourMovementComponent::TryConsumeSurfJump()
 
 	JumpZVelocity = JumpVelocity;
 	bJumpRequestConsumed = true;
-	Velocity = SanitizeSurfExitVelocity(Velocity);
+	Velocity = ClampSurfaceVerticalSpeed(Velocity);
 	Velocity.Z = FMath::Max(Velocity.Z, JumpVelocity);
 	bHasLastSurfSurfaceVelocity = false;
 	bSkipNextSurfExitVelocityRestore = false;

@@ -83,7 +83,7 @@ public:
 	float BunnyHopBufferTime = 0.15f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Jump")
-	float SurfJumpGraceTime = 0.3f;
+	float SurfJumpGraceTime = 0.18f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
 	float ParkourWalkableSlopeAngle = 35.0f;
@@ -118,9 +118,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
 	float MaxSurfVerticalSpeed = 1800.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
-	float MaxSurfExitDownwardSpeed = 250.0f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Respawn")
 	float RespawnZThreshold = -2000.0f;
 
@@ -140,13 +137,9 @@ protected:
 	FVector ComputeSurfaceWishDirection(const FVector& SurfaceNormal) const;
 	FVector ComputeSurfaceVelocity(const FVector& CurrentVelocity, const FVector& SurfaceNormal, bool bPreserveExistingUpwardVelocity) const;
 	FVector ClampSurfaceVerticalSpeed(const FVector& CurrentVelocity) const;
-	FVector SanitizeSurfExitVelocity(const FVector& CurrentVelocity) const;
 	FVector GetFloorNormal() const;
 	void ApplyHorizontalFriction(float DeltaTime, float Friction);
 	void Accelerate(const FVector& WishDirection, float WishSpeed, float AccelerationAmount, float DeltaTime);
-	float ComputeSlopeAngleFromNormal(const FVector& SurfaceNormal) const;
-	void UpdateRecentSurfContactFromFloor(const FFindFloorResult& FloorResult);
-	void ProbeAirborneSurfContact();
 	bool IsJumpBuffered() const;
 	bool IsSurfJumpGraceActive() const;
 	bool TryConsumeSurfJump();
