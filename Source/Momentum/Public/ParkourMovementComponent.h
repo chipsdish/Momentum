@@ -17,6 +17,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void PhysFalling(float DeltaTime, int32 Iterations) override;
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
+	virtual bool ShouldCatchAir(const FFindFloorResult& OldFloor, const FFindFloorResult& NewFloor) override;
 
 	void SetMoveInput(const FVector2D& InMoveInput);
 	void RequestJumpPressed();
@@ -113,6 +114,12 @@ public:
 	float SurfUphillSpeedLoss = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
+	float SurfUphillDetachSpeed = 220.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
+	float SurfReattachBlockTime = 0.12f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
 	float MinSurfSurfaceNormalZ = 0.08f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
@@ -140,6 +147,10 @@ protected:
 	FVector GetFloorNormal() const;
 	void ApplyHorizontalFriction(float DeltaTime, float Friction);
 	void Accelerate(const FVector& WishDirection, float WishSpeed, float AccelerationAmount, float DeltaTime);
+	bool ShouldDetachFromSurfUphill(const FVector& FloorNormal, const FVector& DownSlopeDirection) const;
+	void DetachFromSurf(const FVector& ExitVelocity);
+	void BeginSurfReattachBlock();
+	bool IsSurfReattachBlocked() const;
 	bool IsJumpBuffered() const;
 	bool IsSurfJumpGraceActive() const;
 	bool TryConsumeSurfJump();
@@ -155,6 +166,7 @@ protected:
 
 	FVector LastSurfSurfaceVelocity = FVector::ZeroVector;
 	float LastSurfContactTime = -10000.0f;
+	float SurfReattachBlockedUntilTime = -10000.0f;
 	bool bHasLastSurfSurfaceVelocity = false;
 	bool bSkipNextSurfExitVelocityRestore = false;
 
