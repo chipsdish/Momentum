@@ -270,14 +270,17 @@ void UParkourMovementComponent::ApplyAirMovement(float DeltaTime)
 	const float DirectionalScale = (ForwardAmount * AirForwardControlScale + SideAmount * AirSideControlScale + BackwardAmount * AirBackwardControlScale) / DirectionWeight;
 
 	const FVector CurrentDirection = InitialHorizontalVelocity / InitialHorizontalSpeed;
-	const float DirectionDot = FMath::Clamp(FVector::DotProduct(CurrentDirection, WishDirection), -1.0f, 1.0f);
-	const float AngleToWishDirection = FMath::Acos(DirectionDot);
 	FVector NewDirection = CurrentDirection;
-	if (AngleToWishDirection > KINDA_SMALL_NUMBER)
+	if (AirAimFollowResponsiveness > 0.0f)
 	{
+		const float CurrentYaw = FMath::Atan2(CurrentDirection.Y, CurrentDirection.X);
+		const float WishYaw = FMath::Atan2(WishDirection.Y, WishDirection.X);
+		const float YawDelta = FMath::FindDeltaAngleRadians(CurrentYaw, WishYaw);
+		const float FollowAlpha = FMath::Clamp(1.0f - FMath::Exp(-AirAimFollowResponsiveness * AirControlStrength * DirectionalScale * DeltaTime), 0.0f, 1.0f);
 		const float MaxTurnAngle = FMath::DegreesToRadians(AirTurnRateDegrees * AirControlStrength * DirectionalScale * DeltaTime);
-		const float TurnAlpha = FMath::Clamp(MaxTurnAngle / AngleToWishDirection, 0.0f, 1.0f);
-		NewDirection = FMath::Lerp(CurrentDirection, WishDirection, TurnAlpha).GetSafeNormal();
+		const float TurnAngle = FMath::Clamp(YawDelta * FollowAlpha, -MaxTurnAngle, MaxTurnAngle);
+		const float NewYaw = CurrentYaw + TurnAngle;
+		NewDirection = FVector(FMath::Cos(NewYaw), FMath::Sin(NewYaw), 0.0f);
 	}
 
 	float NewHorizontalSpeed = InitialHorizontalSpeed;

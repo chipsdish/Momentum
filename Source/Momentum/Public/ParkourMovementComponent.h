@@ -60,7 +60,10 @@ public:
 	float AirWishSpeed = 1600.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
-	float AirTurnRateDegrees = 90.0f;
+	float AirTurnRateDegrees = 540.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
+	float AirAimFollowResponsiveness = 8.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
 	float AirControlStrength = 1.0f;
@@ -69,10 +72,10 @@ public:
 	float AirForwardControlScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
-	float AirSideControlScale = 0.2f;
+	float AirSideControlScale = 0.45f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
-	float AirBackwardControlScale = 0.05f;
+	float AirBackwardControlScale = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Acceleration")
 	float AirBrakeDeceleration = 2200.0f;
