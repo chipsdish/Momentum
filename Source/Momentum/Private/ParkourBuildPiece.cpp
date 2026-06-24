@@ -6,6 +6,7 @@
 #include "Components/TextRenderComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Materials/MaterialInterface.h"
 #include "ParkourGameMode.h"
 #include "ProceduralMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -62,6 +63,13 @@ AParkourBuildPiece::AParkourBuildPiece()
 	if (CubeMesh.Succeeded())
 	{
 		Mesh->SetStaticMesh(CubeMesh.Object);
+	}
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> BasicShapeMaterial(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+	if (BasicShapeMaterial.Succeeded())
+	{
+		Mesh->SetMaterial(0, BasicShapeMaterial.Object);
+		RampMesh->SetMaterial(0, BasicShapeMaterial.Object);
 	}
 
 	ApplyPieceVisuals();
@@ -408,8 +416,10 @@ void AParkourBuildPiece::RebuildRampMesh(const FVector& SafeDimensions)
 	TArray<int32> Triangles;
 	TArray<FVector> Normals;
 	TArray<FVector2D> UV0;
+	TArray<FColor> VertexColors;
+	TArray<FProcMeshTangent> Tangents;
 
-	auto AddTriangle = [&Vertices, &Triangles, &Normals, &UV0](FVector A, FVector B, FVector C, const FVector& DesiredNormal)
+	auto AddTriangle = [&Vertices, &Triangles, &Normals, &UV0, &VertexColors, &Tangents](FVector A, FVector B, FVector C, const FVector& DesiredNormal)
 	{
 		FVector Normal = FVector::CrossProduct(B - A, C - A).GetSafeNormal();
 		if (Normal.IsNearlyZero())
@@ -422,6 +432,12 @@ void AParkourBuildPiece::RebuildRampMesh(const FVector& SafeDimensions)
 			Normal *= -1.0f;
 		}
 
+		FVector TangentDirection = FVector::VectorPlaneProject(FVector::ForwardVector, Normal).GetSafeNormal();
+		if (TangentDirection.IsNearlyZero())
+		{
+			TangentDirection = FVector::VectorPlaneProject(FVector::RightVector, Normal).GetSafeNormal();
+		}
+
 		const int32 BaseIndex = Vertices.Num();
 		Vertices.Add(A);
 		Vertices.Add(B);
@@ -432,23 +448,15 @@ void AParkourBuildPiece::RebuildRampMesh(const FVector& SafeDimensions)
 		Normals.Add(Normal);
 		Normals.Add(Normal);
 		Normals.Add(Normal);
+		VertexColors.Add(FColor::White);
+		VertexColors.Add(FColor::White);
+		VertexColors.Add(FColor::White);
+		Tangents.Add(FProcMeshTangent(TangentDirection, false));
+		Tangents.Add(FProcMeshTangent(TangentDirection, false));
+		Tangents.Add(FProcMeshTangent(TangentDirection, false));
 		UV0.Add(FVector2D(0.0f, 0.0f));
 		UV0.Add(FVector2D(1.0f, 0.0f));
 		UV0.Add(FVector2D(1.0f, 1.0f));
-
-		const int32 ReverseBaseIndex = Vertices.Num();
-		Vertices.Add(A);
-		Vertices.Add(C);
-		Vertices.Add(B);
-		Triangles.Add(ReverseBaseIndex);
-		Triangles.Add(ReverseBaseIndex + 1);
-		Triangles.Add(ReverseBaseIndex + 2);
-		Normals.Add(-Normal);
-		Normals.Add(-Normal);
-		Normals.Add(-Normal);
-		UV0.Add(FVector2D(0.0f, 0.0f));
-		UV0.Add(FVector2D(1.0f, 1.0f));
-		UV0.Add(FVector2D(1.0f, 0.0f));
 	};
 
 	auto AddQuad = [&AddTriangle](const FVector& A, const FVector& B, const FVector& C, const FVector& D, const FVector& DesiredNormal)
@@ -503,7 +511,7 @@ void AParkourBuildPiece::RebuildRampMesh(const FVector& SafeDimensions)
 		AddTriangle(LowRight, HighBaseRight, HighTopRight, FVector::RightVector);
 	}
 
-	RampMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), false);
+	RampMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, VertexColors, Tangents, false);
 
 	TArray<TArray<FVector>> ConvexMeshes;
 	ConvexMeshes.Add(ConvexVertices);
