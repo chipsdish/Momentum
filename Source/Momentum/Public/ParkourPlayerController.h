@@ -90,6 +90,7 @@ protected:
 	void HandleBuildPrimaryReleased();
 	void HandleBuildSecondaryPressed();
 	void HandleBuildSecondaryReleased();
+	void HandleBuildCancelPressed();
 	void UpdateBuildDrag();
 	void SyncGizmoToSelection();
 	void SetAllBuildPieceVisualsForBuildMode(bool bBuildModeActive) const;

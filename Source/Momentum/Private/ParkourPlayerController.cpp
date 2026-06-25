@@ -45,6 +45,10 @@ void AParkourPlayerController::Tick(float DeltaSeconds)
 
 	if (bBuildModeEnabled)
 	{
+		if (AParkourBuildManager* BuildManager = FindBuildManager())
+		{
+			BuildManager->UpdatePreviewFromController(this);
+		}
 		UpdateBuildDrag();
 		SyncGizmoToSelection();
 	}
@@ -58,6 +62,7 @@ void AParkourPlayerController::SetupInputComponent()
 	InputComponent->BindAction(TEXT("BuildPrimary"), IE_Released, this, &AParkourPlayerController::HandleBuildPrimaryReleased);
 	InputComponent->BindAction(TEXT("BuildSecondary"), IE_Pressed, this, &AParkourPlayerController::HandleBuildSecondaryPressed);
 	InputComponent->BindAction(TEXT("BuildSecondary"), IE_Released, this, &AParkourPlayerController::HandleBuildSecondaryReleased);
+	InputComponent->BindAction(TEXT("BuildCancel"), IE_Pressed, this, &AParkourPlayerController::HandleBuildCancelPressed);
 }
 
 void AParkourPlayerController::ShowMainMenu()
@@ -181,6 +186,11 @@ void AParkourPlayerController::SetBuildModeEnabled(bool bEnabled)
 	}
 	else
 	{
+		if (AParkourBuildManager* BuildManager = FindBuildManager())
+		{
+			BuildManager->CancelPreviewPlacement();
+		}
+
 		AParkourBuildCameraPawn* CameraToDestroy = BuildCameraPawn;
 		if (AParkourBuildManager* BuildManager = FindBuildManager())
 		{
@@ -304,6 +314,14 @@ void AParkourPlayerController::HandleBuildPrimaryPressed()
 		return;
 	}
 
+	if (AParkourBuildManager* BuildManager = FindBuildManager())
+	{
+		if (BuildManager->HasActivePreview())
+		{
+			return;
+		}
+	}
+
 	FVector RayOrigin = FVector::ZeroVector;
 	FVector RayDirection = FVector::ForwardVector;
 	DeprojectMousePositionToWorld(RayOrigin, RayDirection);
@@ -401,6 +419,25 @@ void AParkourPlayerController::HandleBuildSecondaryReleased()
 
 	bBuildLookActive = false;
 	SetBuildInputMode();
+}
+
+void AParkourPlayerController::HandleBuildCancelPressed()
+{
+	if (!bBuildModeEnabled)
+	{
+		return;
+	}
+
+	if (AParkourBuildManager* BuildManager = FindBuildManager())
+	{
+		if (BuildManager->HasActivePreview())
+		{
+			BuildManager->CancelPreviewPlacement();
+			return;
+		}
+	}
+
+	SetBuildModeEnabled(false);
 }
 
 void AParkourPlayerController::UpdateBuildDrag()

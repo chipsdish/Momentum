@@ -7,6 +7,7 @@
 
 class UBoxComponent;
 class APawn;
+class UMaterialInterface;
 class UProceduralMeshComponent;
 class UPrimitiveComponent;
 class UStaticMeshComponent;
@@ -24,6 +25,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	void ConfigureFromData(const FParkourBuildPieceData& NewPieceData);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetPreviewMode(bool bNewPreviewMode);
 
 	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
 	FParkourBuildPieceData ToData() const;
@@ -70,6 +74,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
 	FVector GetDimensions() const { return PieceData.Dimensions; }
 
+	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
+	bool IsPreviewMode() const { return bPreviewMode; }
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
 	TObjectPtr<USceneComponent> SceneRoot;
 
@@ -108,5 +115,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
 	float BoostPadReuseCooldown = 0.25f;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> DefaultBuildMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> PreviewBuildMaterial;
+
 	TMap<TWeakObjectPtr<AActor>, float> LastBoostTimes;
+
+	bool bPreviewMode = false;
 };

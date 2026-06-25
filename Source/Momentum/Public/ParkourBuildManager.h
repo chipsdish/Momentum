@@ -6,6 +6,7 @@
 #include "ParkourBuildManager.generated.h"
 
 class AParkourBuildPiece;
+class APlayerController;
 class UParkourBuildSaveGame;
 
 UCLASS()
@@ -20,6 +21,30 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	AParkourBuildPiece* AddDefaultPiece(EParkourBuildPieceType PieceType);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	bool BeginPreviewPlacement(EParkourBuildPieceType PieceType);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	bool ConfirmPreviewPlacement();
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void CancelPreviewPlacement();
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void UpdatePreviewFromController(APlayerController* Controller);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetPreviewDimensions(const FVector& NewDimensions);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetPreviewSlopeAngle(float NewSlopeAngle);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetPreviewRotationYaw(float NewYaw);
+
+	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
+	void SetGridSnapSize(float NewGridSnapSize);
 
 	UFUNCTION(BlueprintCallable, Category = "Parkour|Build")
 	AParkourBuildPiece* AddPieceFromData(const FParkourBuildPieceData& PieceData);
@@ -69,6 +94,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
 	AParkourBuildPiece* GetSelectedPiece() const { return SelectedPiece; }
 
+	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
+	AParkourBuildPiece* GetPreviewPiece() const { return PreviewPiece; }
+
+	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
+	bool HasActivePreview() const { return PreviewPiece != nullptr; }
+
+	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
+	FParkourBuildPieceData GetPreviewData() const { return PreviewPieceData; }
+
+	UFUNCTION(BlueprintPure, Category = "Parkour|Build")
+	float GetGridSnapSize() const { return GridSnapSize; }
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
 	TSubclassOf<AParkourBuildPiece> BuildPieceClass;
 
@@ -87,14 +124,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
 	float DuplicateOffset = 150.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
+	float GridSnapSize = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Build")
+	float PlacementTraceDistance = 30000.0f;
+
 protected:
 	void RegisterExistingBuildPieces();
 	UParkourBuildSaveGame* LoadOrCreateSaveGame() const;
 	FParkourBuildPieceData MakeDefaultPieceData(EParkourBuildPieceType PieceType) const;
+	FVector SnapLocation(const FVector& Location) const;
+	FVector GetPlacementOffset(const FParkourBuildPieceData& PieceData) const;
+	void ApplyPreviewData();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
 	TArray<TObjectPtr<AParkourBuildPiece>> RuntimePieces;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
 	TObjectPtr<AParkourBuildPiece> SelectedPiece;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
+	TObjectPtr<AParkourBuildPiece> PreviewPiece;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Parkour|Build")
+	FParkourBuildPieceData PreviewPieceData;
 };

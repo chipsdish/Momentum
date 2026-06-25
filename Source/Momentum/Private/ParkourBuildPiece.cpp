@@ -68,8 +68,15 @@ AParkourBuildPiece::AParkourBuildPiece()
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> BasicShapeMaterial(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
 	if (BasicShapeMaterial.Succeeded())
 	{
-		Mesh->SetMaterial(0, BasicShapeMaterial.Object);
-		RampMesh->SetMaterial(0, BasicShapeMaterial.Object);
+		DefaultBuildMaterial = BasicShapeMaterial.Object;
+		Mesh->SetMaterial(0, DefaultBuildMaterial);
+		RampMesh->SetMaterial(0, DefaultBuildMaterial);
+	}
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> PreviewMaterial(TEXT("/Engine/EngineDebugMaterials/M_SimpleTranslucent.M_SimpleTranslucent"));
+	if (PreviewMaterial.Succeeded())
+	{
+		PreviewBuildMaterial = PreviewMaterial.Object;
 	}
 
 	ApplyPieceVisuals();
@@ -113,6 +120,13 @@ void AParkourBuildPiece::ConfigureFromData(const FParkourBuildPieceData& NewPiec
 	{
 		ApplySlopeRotation();
 	}
+	ApplyPieceVisuals();
+}
+
+void AParkourBuildPiece::SetPreviewMode(bool bNewPreviewMode)
+{
+	bPreviewMode = bNewPreviewMode;
+	SetSelected(false);
 	ApplyPieceVisuals();
 }
 
@@ -292,14 +306,19 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 	const FVector SafeDimensions = PieceData.Dimensions.ComponentMax(FVector(10.0f));
 	const bool bUseRampMesh = IsRampLikePiece();
 	const float VisualHeight = bUseRampMesh ? GetRampRise(SafeDimensions) : SafeDimensions.Z;
+	UMaterialInterface* MaterialToUse = bPreviewMode && PreviewBuildMaterial ? PreviewBuildMaterial.Get() : DefaultBuildMaterial.Get();
 
 	if (Mesh)
 	{
 		Mesh->SetRelativeScale3D(SafeDimensions / 100.0f);
 		Mesh->SetHiddenInGame(bUseRampMesh);
 		Mesh->SetVisibility(!bUseRampMesh, true);
+		if (MaterialToUse)
+		{
+			Mesh->SetMaterial(0, MaterialToUse);
+		}
 
-		if (bUseRampMesh)
+		if (bPreviewMode || bUseRampMesh)
 		{
 			Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -327,17 +346,21 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 		RampMesh->ClearCollisionConvexMeshes();
 		RampMesh->SetHiddenInGame(!bUseRampMesh);
 		RampMesh->SetVisibility(bUseRampMesh, true);
+		if (MaterialToUse)
+		{
+			RampMesh->SetMaterial(0, MaterialToUse);
+		}
 
 		if (bUseRampMesh)
 		{
 			RebuildRampMesh(SafeDimensions);
-			if (Mesh && Mesh->GetMaterial(0))
+			if (MaterialToUse)
 			{
-				RampMesh->SetMaterial(0, Mesh->GetMaterial(0));
+				RampMesh->SetMaterial(0, MaterialToUse);
 			}
-			RampMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			RampMesh->SetCollisionResponseToAllChannels(ECR_Block);
-			RampMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+			RampMesh->SetCollisionEnabled(bPreviewMode ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryAndPhysics);
+			RampMesh->SetCollisionResponseToAllChannels(bPreviewMode ? ECR_Ignore : ECR_Block);
+			RampMesh->SetCollisionResponseToChannel(ECC_Visibility, bPreviewMode ? ECR_Ignore : ECR_Block);
 			RampMesh->SetGenerateOverlapEvents(false);
 		}
 		else
@@ -358,7 +381,13 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 		TriggerVolume->SetRelativeLocation(FVector::ZeroVector);
 		TriggerVolume->SetBoxExtent(SafeDimensions * 0.5f);
 
-		if (PieceData.PieceType == EParkourBuildPieceType::FinishGate)
+		if (bPreviewMode)
+		{
+			TriggerVolume->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			TriggerVolume->SetCollisionResponseToAllChannels(ECR_Ignore);
+			TriggerVolume->SetGenerateOverlapEvents(false);
+		}
+		else if (PieceData.PieceType == EParkourBuildPieceType::FinishGate)
 		{
 			TriggerVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 			TriggerVolume->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
@@ -379,7 +408,8 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 	{
 		SelectionBounds->SetRelativeLocation(bUseRampMesh ? FVector(0.0f, 0.0f, VisualHeight * 0.5f) : FVector::ZeroVector);
 		SelectionBounds->SetBoxExtent(bUseRampMesh ? FVector(SafeDimensions.X * 0.5f, SafeDimensions.Y * 0.5f, VisualHeight * 0.5f) : SafeDimensions * 0.5f);
-		SelectionBounds->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		SelectionBounds->SetCollisionEnabled(bPreviewMode ? ECollisionEnabled::NoCollision : SelectionBounds->GetCollisionEnabled());
+		SelectionBounds->SetCollisionResponseToChannel(ECC_Visibility, bPreviewMode ? ECR_Ignore : ECR_Block);
 		SelectionBounds->SetHiddenInGame(true);
 		SelectionBounds->SetVisibility(false);
 	}
@@ -390,7 +420,7 @@ void AParkourBuildPiece::ApplyPieceVisuals()
 		LabelText->SetText(FText::FromString(Label));
 		LabelText->SetRelativeLocation(FVector(0.0f, 0.0f, VisualHeight + 80.0f));
 		LabelText->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
-		LabelText->SetHiddenInGame(PieceData.PieceType != EParkourBuildPieceType::Sign);
+		LabelText->SetHiddenInGame(bPreviewMode || PieceData.PieceType != EParkourBuildPieceType::Sign);
 	}
 }
 

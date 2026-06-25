@@ -1,9 +1,47 @@
 #include "ParkourBuildManager.h"
 
 #include "EngineUtils.h"
+#include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "ParkourBuildPiece.h"
 #include "ParkourBuildSaveGame.h"
+
+namespace
+{
+	bool IsRampLikePieceType(EParkourBuildPieceType PieceType)
+	{
+		return PieceType == EParkourBuildPieceType::Ramp
+			|| PieceType == EParkourBuildPieceType::JumpRamp
+			|| PieceType == EParkourBuildPieceType::AccelerationRamp;
+	}
+
+	float GetRampRunForData(const FParkourBuildPieceData& PieceData)
+	{
+		const FVector SafeDimensions = PieceData.Dimensions.ComponentMax(FVector(10.0f));
+		return PieceData.bUseInwardBank ? SafeDimensions.Y : SafeDimensions.X;
+	}
+
+	float GetRampRiseFromSlope(const FParkourBuildPieceData& PieceData)
+	{
+		const float AngleRadians = FMath::DegreesToRadians(FMath::Clamp(PieceData.SlopeAngle, 0.0f, 85.0f));
+		return FMath::Max(FMath::Tan(AngleRadians) * GetRampRunForData(PieceData), 1.0f);
+	}
+
+	float GetRampSlopeFromRise(const FParkourBuildPieceData& PieceData)
+	{
+		const float Run = FMath::Max(GetRampRunForData(PieceData), 1.0f);
+		const float Rise = FMath::Max(PieceData.Dimensions.Z, 1.0f);
+		return FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan(Rise / Run)), 0.0f, 85.0f);
+	}
+
+	void SyncRampHeightToSlope(FParkourBuildPieceData& PieceData)
+	{
+		if (IsRampLikePieceType(PieceData.PieceType))
+		{
+			PieceData.Dimensions.Z = GetRampRiseFromSlope(PieceData);
+		}
+	}
+}
 
 AParkourBuildManager::AParkourBuildManager()
 {
@@ -29,6 +67,166 @@ void AParkourBuildManager::BeginPlay()
 AParkourBuildPiece* AParkourBuildManager::AddDefaultPiece(EParkourBuildPieceType PieceType)
 {
 	return AddPieceFromData(MakeDefaultPieceData(PieceType));
+}
+
+bool AParkourBuildManager::BeginPreviewPlacement(EParkourBuildPieceType PieceType)
+{
+	if (!GetWorld())
+	{
+		return false;
+	}
+
+	CancelPreviewPlacement();
+	ClearSelection();
+
+	PreviewPieceData = MakeDefaultPieceData(PieceType);
+	PreviewPieceData.PieceId = FGuid::NewGuid();
+	PreviewPieceData.Transform.SetLocation(SnapLocation(PreviewPieceData.Transform.GetLocation()));
+
+	TSubclassOf<AParkourBuildPiece> SpawnClass = BuildPieceClass;
+	if (!SpawnClass)
+	{
+		SpawnClass = AParkourBuildPiece::StaticClass();
+	}
+	PreviewPiece = GetWorld()->SpawnActor<AParkourBuildPiece>(SpawnClass, PreviewPieceData.Transform);
+	if (!PreviewPiece)
+	{
+		return false;
+	}
+
+	PreviewPiece->ConfigureFromData(PreviewPieceData);
+	PreviewPiece->SetPreviewMode(true);
+	return true;
+}
+
+bool AParkourBuildManager::ConfirmPreviewPlacement()
+{
+	if (!PreviewPiece)
+	{
+		return false;
+	}
+
+	FParkourBuildPieceData PlacedData = PreviewPiece->ToData();
+	PlacedData.PieceId = FGuid::NewGuid();
+
+	CancelPreviewPlacement();
+	return AddPieceFromData(PlacedData) != nullptr;
+}
+
+void AParkourBuildManager::CancelPreviewPlacement()
+{
+	if (PreviewPiece)
+	{
+		PreviewPiece->Destroy();
+		PreviewPiece = nullptr;
+	}
+}
+
+void AParkourBuildManager::UpdatePreviewFromController(APlayerController* Controller)
+{
+	if (!PreviewPiece || !Controller || !GetWorld())
+	{
+		return;
+	}
+
+	FVector RayOrigin = FVector::ZeroVector;
+	FVector RayDirection = FVector::ForwardVector;
+	if (!Controller->DeprojectMousePositionToWorld(RayOrigin, RayDirection))
+	{
+		if (Controller->PlayerCameraManager)
+		{
+			RayOrigin = Controller->PlayerCameraManager->GetCameraLocation();
+			RayDirection = Controller->PlayerCameraManager->GetCameraRotation().Vector();
+		}
+	}
+
+	RayDirection = RayDirection.GetSafeNormal();
+	const FVector RayEnd = RayOrigin + RayDirection * PlacementTraceDistance;
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ParkourBuildPreviewTrace), false);
+	QueryParams.AddIgnoredActor(PreviewPiece);
+	if (APawn* Pawn = Controller->GetPawn())
+	{
+		QueryParams.AddIgnoredActor(Pawn);
+	}
+
+	FHitResult Hit;
+	FVector TargetLocation = FVector::ZeroVector;
+	if (GetWorld()->LineTraceSingleByChannel(Hit, RayOrigin, RayEnd, ECC_Visibility, QueryParams))
+	{
+		TargetLocation = Hit.Location;
+	}
+	else
+	{
+		const FPlane GroundPlane(FVector::ZeroVector, FVector::UpVector);
+		const FVector PlaneHit = FMath::LinePlaneIntersection(RayOrigin, RayEnd, GroundPlane);
+		TargetLocation = PlaneHit.ContainsNaN() ? GetActorLocation() : PlaneHit;
+	}
+
+	TargetLocation += GetPlacementOffset(PreviewPieceData);
+	PreviewPieceData.Transform.SetLocation(SnapLocation(TargetLocation));
+	ApplyPreviewData();
+}
+
+void AParkourBuildManager::SetPreviewDimensions(const FVector& NewDimensions)
+{
+	if (!PreviewPiece)
+	{
+		return;
+	}
+
+	const FVector OldDimensions = PreviewPieceData.Dimensions;
+	PreviewPieceData.Dimensions = NewDimensions.ComponentMax(FVector(10.0f));
+	if (IsRampLikePieceType(PreviewPieceData.PieceType))
+	{
+		const bool bHeightChanged = !FMath::IsNearlyEqual(PreviewPieceData.Dimensions.Z, OldDimensions.Z, 0.1f);
+		if (bHeightChanged)
+		{
+			PreviewPieceData.SlopeAngle = GetRampSlopeFromRise(PreviewPieceData);
+		}
+		else
+		{
+			SyncRampHeightToSlope(PreviewPieceData);
+		}
+	}
+	ApplyPreviewData();
+}
+
+void AParkourBuildManager::SetPreviewSlopeAngle(float NewSlopeAngle)
+{
+	if (!PreviewPiece)
+	{
+		return;
+	}
+
+	PreviewPieceData.SlopeAngle = FMath::Clamp(FMath::Abs(NewSlopeAngle), 0.0f, 85.0f);
+	SyncRampHeightToSlope(PreviewPieceData);
+	ApplyPreviewData();
+}
+
+void AParkourBuildManager::SetPreviewRotationYaw(float NewYaw)
+{
+	if (!PreviewPiece)
+	{
+		return;
+	}
+
+	FRotator Rotation = PreviewPieceData.Transform.Rotator();
+	Rotation.Pitch = 0.0f;
+	Rotation.Roll = 0.0f;
+	Rotation.Yaw = NewYaw;
+	PreviewPieceData.Transform.SetRotation(Rotation.Quaternion());
+	ApplyPreviewData();
+}
+
+void AParkourBuildManager::SetGridSnapSize(float NewGridSnapSize)
+{
+	GridSnapSize = FMath::Clamp(NewGridSnapSize, 1.0f, 1000.0f);
+	if (PreviewPiece)
+	{
+		PreviewPieceData.Transform.SetLocation(SnapLocation(PreviewPieceData.Transform.GetLocation()));
+		ApplyPreviewData();
+	}
 }
 
 AParkourBuildPiece* AParkourBuildManager::AddPieceFromData(const FParkourBuildPieceData& PieceData)
@@ -127,6 +325,7 @@ void AParkourBuildManager::AdjustSelectedDimensions(const FVector& DeltaDimensio
 
 void AParkourBuildManager::ClearRuntimePieces()
 {
+	CancelPreviewPlacement();
 	ClearSelection();
 
 	for (AParkourBuildPiece* Piece : RuntimePieces)
@@ -364,5 +563,35 @@ FParkourBuildPieceData AParkourBuildManager::MakeDefaultPieceData(EParkourBuildP
 		break;
 	}
 
+	SyncRampHeightToSlope(PieceData);
 	return PieceData;
+}
+
+FVector AParkourBuildManager::SnapLocation(const FVector& Location) const
+{
+	if (GridSnapSize <= KINDA_SMALL_NUMBER)
+	{
+		return Location;
+	}
+
+	return FVector(
+		FMath::GridSnap(Location.X, GridSnapSize),
+		FMath::GridSnap(Location.Y, GridSnapSize),
+		FMath::GridSnap(Location.Z, GridSnapSize));
+}
+
+FVector AParkourBuildManager::GetPlacementOffset(const FParkourBuildPieceData& PieceData) const
+{
+	return IsRampLikePieceType(PieceData.PieceType) ? FVector::ZeroVector : FVector(0.0f, 0.0f, PieceData.Dimensions.Z * 0.5f);
+}
+
+void AParkourBuildManager::ApplyPreviewData()
+{
+	if (!PreviewPiece)
+	{
+		return;
+	}
+
+	PreviewPiece->ConfigureFromData(PreviewPieceData);
+	PreviewPiece->SetPreviewMode(true);
 }
