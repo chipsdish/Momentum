@@ -116,6 +116,9 @@ public:
 	float SurfUphillSpeedLoss = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
+	float MaxSurfUphillInputSpeed = 700.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
 	float MinSurfSurfaceNormalZ = 0.08f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|Slope")
@@ -143,6 +146,7 @@ protected:
 	FVector GetFloorNormal() const;
 	void ApplyHorizontalFriction(float DeltaTime, float Friction);
 	void Accelerate(const FVector& WishDirection, float WishSpeed, float AccelerationAmount, float DeltaTime);
+	void LimitSurfUphillInputVelocity(const FVector& DownSlopeDirection, float UphillInputAmount);
 	bool IsJumpBuffered() const;
 	bool IsSurfJumpGraceActive() const;
 	bool TryConsumeSurfJump();

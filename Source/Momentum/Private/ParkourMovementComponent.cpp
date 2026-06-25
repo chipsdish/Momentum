@@ -298,17 +298,25 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 	}
 
 	const float InputAmount = MoveInput.Size();
+	float UphillInputAmount = 0.0f;
 	if (InputAmount > KINDA_SMALL_NUMBER)
 	{
 		FVector WishDirection = ComputeSurfaceWishDirection(FloorNormal);
 		const float UphillAmount = FVector::DotProduct(WishDirection, -DownSlopeDirection);
+		UphillInputAmount = FMath::Max(UphillAmount, 0.0f);
 		float ControlAcceleration = SurfControlAcceleration;
 		if (UphillAmount > 0.0f)
 		{
 			ControlAcceleration *= FMath::Lerp(1.0f, SurfUphillControlScale, UphillAmount);
 		}
 
-		Accelerate(WishDirection, MaxSpeed * InputAmount, ControlAcceleration, DeltaTime);
+		float SurfWishSpeed = MaxSpeed * InputAmount;
+		if (UphillAmount > 0.0f && MaxSurfUphillInputSpeed > 0.0f)
+		{
+			SurfWishSpeed = FMath::Lerp(SurfWishSpeed, FMath::Min(SurfWishSpeed, MaxSurfUphillInputSpeed), UphillAmount);
+		}
+
+		Accelerate(WishDirection, SurfWishSpeed, ControlAcceleration, DeltaTime);
 		if (UphillAmount > 0.0f && SurfUphillSpeedLoss > 0.0f)
 		{
 			Velocity *= FMath::Max(1.0f - SurfUphillSpeedLoss * UphillAmount * DeltaTime, 0.0f);
@@ -316,6 +324,7 @@ void UParkourMovementComponent::ApplySurfMovement(float DeltaTime)
 	}
 
 	Velocity = ComputeSurfaceVelocity(Velocity, FloorNormal, false);
+	LimitSurfUphillInputVelocity(DownSlopeDirection, UphillInputAmount);
 	LastSurfSurfaceVelocity = Velocity;
 	bHasLastSurfSurfaceVelocity = true;
 }
@@ -497,6 +506,28 @@ void UParkourMovementComponent::Accelerate(const FVector& WishDirection, float W
 	float AccelerationSpeed = AccelerationAmount * ClampedWishSpeed * DeltaTime;
 	AccelerationSpeed = FMath::Min(AccelerationSpeed, AdditionalSpeedNeeded);
 	Velocity += NormalizedWishDirection * AccelerationSpeed;
+}
+
+void UParkourMovementComponent::LimitSurfUphillInputVelocity(const FVector& DownSlopeDirection, float UphillInputAmount)
+{
+	if (UphillInputAmount <= KINDA_SMALL_NUMBER || MaxSurfUphillInputSpeed <= 0.0f)
+	{
+		return;
+	}
+
+	const FVector UpSlopeDirection = -DownSlopeDirection.GetSafeNormal();
+	if (UpSlopeDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	const float UphillSpeed = FVector::DotProduct(Velocity, UpSlopeDirection);
+	if (UphillSpeed <= MaxSurfUphillInputSpeed)
+	{
+		return;
+	}
+
+	Velocity -= UpSlopeDirection * (UphillSpeed - MaxSurfUphillInputSpeed);
 }
 
 bool UParkourMovementComponent::IsJumpBuffered() const
