@@ -79,6 +79,7 @@ void AParkourPlayerController::ShowMainMenu()
 
 void AParkourPlayerController::StartTestLevel()
 {
+	SetGameplayInputMode();
 	UGameplayStatics::OpenLevel(this, TestLevelName);
 }
 
