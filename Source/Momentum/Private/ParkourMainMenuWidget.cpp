@@ -206,8 +206,9 @@ TSharedRef<SWidget> UParkourMainMenuWidget::RebuildWidget()
 	ComingSoonText = MakeText(WidgetTree, TEXT("ComingSoonText"), TEXT("SETTINGS: COMING SOON"), 16, FLinearColor(0.78f, 0.94f, 1.0f, 0.0f));
 	ComingSoonPill->SetContent(ComingSoonText);
 
-	UTextBlock* VersionText = MakeText(WidgetTree, TEXT("VersionText"), TEXT("Prototype Build 0.1"), 15, FLinearColor(0.52f, 0.64f, 0.72f, 0.78f));
-	AddCanvasChild(Root, VersionText, FAnchors(0.0f, 1.0f), FMargin(88.0f, -56.0f, 260.0f, 32.0f));
+	UTextBlock* VersionText = MakeText(WidgetTree, TEXT("VersionText"), TEXT("PROTOTYPE v0.1.0"), 15, FLinearColor(0.52f, 0.64f, 0.72f, 0.78f));
+	VersionText->SetJustification(ETextJustify::Right);
+	AddCanvasChild(Root, VersionText, FAnchors(1.0f, 1.0f), FMargin(-36.0f, -24.0f, 260.0f, 32.0f), FVector2D(1.0f, 1.0f));
 
 	UTextBlock* PreviewLabel = MakeText(WidgetTree, TEXT("PreviewLabel"), TEXT("T E S T   C O U R S E   P R E V I E W"), 16, FLinearColor(0.45f, 0.78f, 0.95f, 0.68f));
 	AddCanvasChild(Root, PreviewLabel, FAnchors(1.0f, 0.0f), FMargin(-540.0f, 90.0f, 430.0f, 30.0f));
